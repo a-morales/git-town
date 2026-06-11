@@ -16,13 +16,15 @@ before touching any command.
 - `WorktreeAdd(runner, path, branch, parent)` →
   `git worktree add -b <branch> <path> <parent>`.
 - `WorktreeRemove(runner, path)` → `git worktree remove <path>`.
-- `WorktreeList(...)` / reuse existing `git worktree list --porcelain` parsing
-  to find the path where a given branch is checked out. (Branch→worktree path
-  data already exists via the `worktreepath` field used in `BranchesSnapshot`;
-  factor out a query that returns the worktree path for a branch.)
-- `MainWorktreeParentDir(...)`: resolve the directory of the worktree holding
-  the `main` branch, return its parent. Returns an error if `main` is not
-  checked out in any worktree (failure mode #2).
+- **Add `WorktreePath Option[string]` to `BranchInfo`.** `BranchesSnapshot`
+  already fetches `worktreepath:%(worktreepath)` and discards it after computing
+  the `Worktree bool` (`commands.go:946,968`); retain it instead. This single
+  field feeds both anchor resolution (Slice 2) and undo (Slice 3), so it lands
+  first. Update the parser and any `BranchInfo` constructors/tests.
+- `MainWorktreeParentDir(branchInfos)`: read the `WorktreePath` of the `main`
+  branch's `BranchInfo` and return its parent directory. Returns an error if
+  `main` has no worktree path (failure mode #2). Pure function over the
+  snapshot — no extra Git query.
 
 ### Path computation helper
 
@@ -47,27 +49,52 @@ New opcodes in `internal/vm/opcodes/`. Follow the existing single-`Run`-method
 pattern (see `commit.go`, `branch_local_delete.go`).
 
 - `WorktreeAddAndCheckoutNewBranch{ Branch, Path, Parent }` — runs
-  `git.WorktreeAdd`. Replaces `BranchCreateAndCheckoutExistingParent` in
+  `git.WorktreeAdd` (path passed as an argument; runs fine from the repo root,
+  no `chdir` needed). Replaces `BranchCreateAndCheckoutExistingParent` in
   worktree mode.
-- `ChangeDir{ Path }` — `os.Chdir(path)` so subsequent opcodes run inside the
-  target worktree. Add a corresponding "change back" usage (store the original
-  dir, or emit an explicit `ChangeDir` back to the repo root).
 - `WorktreeRemove{ Path }` — runs `git.WorktreeRemove`; used by undo.
+- Worktree-targeted mutation opcodes for the operations that must run *inside*
+  the new worktree (stash-pop, commit, cherry-pick). Each is **atomic**: it
+  captures the current dir, `os.Chdir`es into the worktree path, runs the
+  existing `git.Commands` method, and `defer`s a `chdir` back to the original
+  dir — all within one `Run()`. Examples:
+  `StashPopInWorktree{ Path }`, `CommitInWorktree{ Path, Message, ... }`,
+  `CherryPickInWorktree{ Path, SHA }`.
 
-### Notes
+### Notes — why no standalone `ChangeDir` opcode
 
-- `ChangeDir` changes the Git Town **process** working directory only; the
-  parent shell is unaffected.
-- Verify how the interpreter resolves the repo root after a `chdir` (the runner
-  executes Git in the process CWD). Ensure snapshot/runstate operations that
-  assume the repo root still work, or always `chdir` back before they run.
-- Register opcodes wherever opcodes are enumerated for serialization (check how
-  existing opcodes are registered for runstate persistence so an interrupted
-  command can resume).
+Both runners execute Git in the **process CWD**: `FrontendRunner` never sets
+`subProcess.Dir`, and in production `BackendRunner` is built with
+`Dir: None[string]()` (`internal/execute/open_repo.go:37`). The end snapshot is
+taken **after** the program runs, via the backend, in the then-current CWD
+(`finished.go`, `errored.go`, `exit_to_shell.go` all call
+`Git.BranchesSnapshot(args.Backend)`), and `BranchesSnapshot` derives the
+*active* branch from the **current worktree's HEAD**.
+
+A cross-opcode `ChangeDir` that leaves the CWD changed would therefore (a) make
+the end snapshot record the *new* worktree's branch as active, corrupting the
+undo diff, and (b) break interrupt/resume, which restarts at the original root
+and would run the remaining worktree-targeted opcodes in the wrong directory.
+
+The **atomic chdir-with-defer per opcode** pattern avoids both: the process CWD
+is always restored to the repo root after every opcode (snapshot-safe), each
+opcode is self-contained (resume-safe), and the existing `git.Commands` logic is
+reused (no reimplementation of commit/cherry-pick/hooks). `os.Chdir` is
+process-global, but the interpreter is single-threaded and sequential, so this
+is safe.
+
+### Registration
+
+`internal/vm/program/json.go` (de)serializes opcodes by type name via
+`opcodes.Lookup` → `opcodes.All()`. `internal/vm/opcodes/all.go` is **generated**
+(`generate_opcodes_all.sh`, `// DO NOT EDIT`). Just add the opcode files and run
+`make fix`; registration is automatic.
 
 ### Tests
 
 - Per-opcode unit tests where the existing opcodes have them.
+- A test asserting the process CWD is unchanged after a worktree-targeted opcode
+  runs (atomicity guarantee).
 
 ## Slice 2 — Clean case wiring (`hack`, no WIP/commit/beam)
 
@@ -124,15 +151,19 @@ worktree and branch, leaves the shell put, and prints the path. No config yet.
 Goal: `git town undo` after a clean `hack --worktree` removes the worktree and
 deletes the branch.
 
+`undobranches/branch_changes.go` generates undo by diffing begin/end
+`BranchInfos` — it has no Git access, so the worktree path comes from the
+`BranchInfo.WorktreePath` field added in Slice 0.
+
 ### `internal/undo/undobranches/branch_changes.go`
 
 - The new branch is detected as `LocalAdded`. Today undo emits
   `CheckoutIfNeeded` + `BranchLocalDelete`, which fails for a branch checked out
-  in a worktree. Make the added-branch undo path worktree-aware: when the added
-  branch is checked out in a (non-main) worktree, emit `WorktreeRemove{path}`
-  **before** `BranchLocalDelete`.
-- Determine the worktree path during undo from the begin/end snapshots or by
-  querying Git at undo time (the branch→worktree-path query from Slice 0).
+  in a worktree. Make the added-branch undo path worktree-aware: when the
+  added branch's end-snapshot `WorktreePath` is set, emit
+  `WorktreeRemove{Path}` **before** `BranchLocalDelete` (and skip the
+  `CheckoutIfNeeded`, since we are not checked out on the added branch in the
+  current worktree).
 
 ### Tests
 
@@ -149,15 +180,17 @@ worktree.
 
 ### `appendProgram`
 
-- When there are open changes: prepend `StashOpenChanges` (current worktree),
-  then after `WorktreeAddAndCheckoutNewBranch`, emit `ChangeDir{newPath}` and
-  `StashPopIfNeeded`, then `ChangeDir` back to the repo root.
+- When there are open changes: prepend `StashOpenChanges` (runs in the current
+  worktree at the repo root), then after `WorktreeAddAndCheckoutNewBranch` emit
+  the atomic `StashPopInWorktree{newPath}`. No standalone `ChangeDir` — the pop
+  opcode chdirs in and back internally.
 
 ### Undo
 
 - Full reversal: when undoing, the new worktree may be dirty. Reverse the
-  transport — `ChangeDir{newPath}` → `StashOpenChanges` → `ChangeDir{origRoot}`
-  → `StashPopIfNeeded` → `WorktreeRemove`. Sequence the stash ops so WIP lands
+  transport with atomic opcodes — `StashOpenChangesInWorktree{newPath}` (stash
+  the WIP inside the new worktree) → `StashPopIfNeeded` (pop in the original
+  worktree at the repo root) → `WorktreeRemove{newPath}`. Sequence so WIP lands
   back in the original worktree before the worktree is removed.
 
 ### Tests
@@ -169,8 +202,9 @@ worktree.
 
 ### `appendProgram`
 
-- After WIP is popped in the new worktree (Slice 4), emit `Commit` while the
-  process CWD is the new worktree, then `ChangeDir` back.
+- After WIP is popped in the new worktree (Slice 4), emit the atomic
+  `CommitInWorktree{newPath, ...}` so the commit lands on the new branch in the
+  new worktree.
 
 ### Tests
 
@@ -181,10 +215,11 @@ worktree.
 
 ### `appendProgram` (`moveCommitsToAppendedBranch`)
 
-- Cherry-pick the beamed commits in the **new worktree** (`ChangeDir{newPath}`
-  around the `CherryPick` ops).
+- Cherry-pick the beamed commits in the **new worktree** via the atomic
+  `CherryPickInWorktree{newPath, SHA}` opcodes.
 - `CommitRemove` and the optional `PushCurrentBranchForceIgnoreError` run on the
-  **current** branch in the **current** worktree (`ChangeDir` back first).
+  **current** branch in the **current** worktree at the repo root (unchanged
+  opcodes — no chdir).
 
 ### Undo
 
@@ -244,10 +279,12 @@ worktree.
 
 ## Cross-cutting checklist
 
-- [ ] `ChangeDir` always returns to the repo root before snapshot/runstate code
-      runs.
+- [ ] Worktree-targeted opcodes are atomic (chdir in + `defer` chdir back); the
+      process CWD is the repo root whenever `BranchesSnapshot` runs
+      (`finished`/`errored`/`exit_to_shell`).
 - [ ] Interrupted-command resume (runstate persistence) works with the new
-      opcodes — verify serialization registration.
+      opcodes — no CWD state carried across opcodes; run `make fix` so
+      `opcodes.All()` includes the new opcodes for (de)serialization.
 - [ ] Dry-run prints the intended worktree operations without executing them.
 - [ ] Windows path handling for the computed worktree path.
 - [ ] `git town undo` never removes a worktree without first recovering its WIP.
