@@ -405,6 +405,7 @@ func determineAppendData(args determineAppendDataArgs, repo execute.OpenRepoResu
 		commitsToBeam:             commitsToBeam,
 		config:                    validatedConfig,
 		connector:                 connector,
+		createWorktree:            configdomain.CreateWorktree(false), // append does not yet support worktree mode
 		detectedForgeType:         detectedForgeType,
 		hasOpenChanges:            repoStatus.OpenChanges,
 		initialBranch:             initialBranch,
@@ -419,6 +420,7 @@ func determineAppendData(args determineAppendDataArgs, repo execute.OpenRepoResu
 		remotes:                   remotes,
 		stashSize:                 stashSize,
 		targetBranch:              targetBranch,
+		worktreePath:              "",
 	}, configdomain.ProgramFlowContinue, nil
 }
 
@@ -450,11 +452,27 @@ func appendProgram(frontend subshelldomain.Runner, data appendFeatureData, final
 		})
 	}
 	if data.createWorktree.ShouldCreateWorktree() {
+		// Move any uncommitted changes from the current worktree into the new one:
+		// stash them here, create the worktree, then pop them there. When committing,
+		// the changes must move regardless of the stash setting (there is no
+		// check-out-carries-changes path across worktrees).
+		transportOpenChanges := data.hasOpenChanges && (data.config.NormalConfig.Stash.ShouldStash() || data.commit.ShouldCommit())
+		if transportOpenChanges {
+			prog.Value.Add(&opcodes.StashOpenChanges{})
+		}
 		prog.Value.Add(&opcodes.WorktreeAddAndCheckoutNewBranch{
 			Ancestors: data.newBranchParentCandidates,
 			Branch:    data.targetBranch,
 			Path:      data.worktreePath,
 		})
+		if transportOpenChanges {
+			// when committing, leave the changes staged so the commit picks them up;
+			// otherwise unstage them so they appear as ordinary uncommitted changes.
+			prog.Value.Add(&opcodes.StashPopInWorktree{
+				Path:    data.worktreePath,
+				Unstage: !data.commit.ShouldCommit(),
+			})
+		}
 	} else {
 		prog.Value.Add(&opcodes.BranchCreateAndCheckoutExistingParent{
 			Ancestors: data.newBranchParentCandidates,
@@ -478,13 +496,24 @@ func appendProgram(frontend subshelldomain.Runner, data appendFeatureData, final
 	}
 	prog.Value.Add(&opcodes.BranchTypeOverrideSet{Branch: data.targetBranch, BranchType: branchType})
 	if data.commit {
-		prog.Value.Add(
-			&opcodes.Commit{
-				AuthorOverride:                 None[gitdomain.Author](),
-				FallbackToDefaultCommitMessage: false,
-				Message:                        data.commitMessage,
-			},
-		)
+		if data.createWorktree.ShouldCreateWorktree() {
+			prog.Value.Add(
+				&opcodes.CommitInWorktree{
+					AuthorOverride:                 None[gitdomain.Author](),
+					FallbackToDefaultCommitMessage: false,
+					Message:                        data.commitMessage,
+					Path:                           data.worktreePath,
+				},
+			)
+		} else {
+			prog.Value.Add(
+				&opcodes.Commit{
+					AuthorOverride:                 None[gitdomain.Author](),
+					FallbackToDefaultCommitMessage: false,
+					Message:                        data.commitMessage,
+				},
+			)
+		}
 	}
 	moveCommitsToAppendedBranch(prog, data, beamCherryPick)
 	if data.propose {
@@ -529,18 +558,22 @@ func moveCommitsToAppendedBranch(prog Mutable[program.Program], data appendFeatu
 	if len(data.commitsToBeam) == 0 {
 		return
 	}
+	worktree := data.createWorktree.ShouldCreateWorktree()
 	if performCherryPick {
 		for _, commitToBeam := range data.commitsToBeam {
-			prog.Value.Add(
-				&opcodes.CherryPick{SHA: commitToBeam.SHA},
-			)
+			if worktree {
+				// the new branch is checked out in its own worktree
+				prog.Value.Add(&opcodes.CherryPickInWorktree{Path: data.worktreePath, SHA: commitToBeam.SHA})
+			} else {
+				prog.Value.Add(&opcodes.CherryPick{SHA: commitToBeam.SHA})
+			}
 		}
 	}
-	prog.Value.Add(
-		&opcodes.Checkout{
-			Branch: data.initialBranch,
-		},
-	)
+	if !worktree {
+		// switch to the source branch to remove the beamed commits from it;
+		// in worktree mode the current worktree is already on the source branch.
+		prog.Value.Add(&opcodes.Checkout{Branch: data.initialBranch})
+	}
 	for c := len(data.commitsToBeam) - 1; c >= 0; c-- {
 		commitToBeam := data.commitsToBeam[c]
 		prog.Value.Add(
@@ -554,11 +587,10 @@ func moveCommitsToAppendedBranch(prog Mutable[program.Program], data appendFeatu
 			&opcodes.PushCurrentBranchForceIgnoreError{},
 		)
 	}
-	prog.Value.Add(
-		&opcodes.Checkout{
-			Branch: data.targetBranch,
-		},
-	)
+	if !worktree {
+		// return to the new branch; in worktree mode we never left the source branch.
+		prog.Value.Add(&opcodes.Checkout{Branch: data.targetBranch})
+	}
 	if !performCherryPick {
 		prog.Value.Add(
 			&opcodes.RebaseBranch{

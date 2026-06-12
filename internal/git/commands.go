@@ -166,10 +166,11 @@ func (self *Commands) BranchesSnapshot(querier subshelldomain.Querier) (gitdomai
 			// path is the current working directory - callers resolve that via the repo root.
 			syncStatus := determineSyncStatus(branch.Track, branch.UpstreamOption)
 			result = append(result, gitdomain.BranchInfo{
-				Local:      Some(gitdomain.BranchData{Name: branch.BranchName.LocalName(), SHA: branch.SHA}),
-				RemoteName: branch.UpstreamOption,
-				RemoteSHA:  None[gitdomain.SHA](), // may be added later
-				SyncStatus: syncStatus,
+				Local:        Some(gitdomain.BranchData{Name: branch.BranchName.LocalName(), SHA: branch.SHA}),
+				RemoteName:   branch.UpstreamOption,
+				RemoteSHA:    None[gitdomain.SHA](), // may be added later
+				SyncStatus:   syncStatus,
+				WorktreePath: None[string](),
 			})
 		default:
 			// Not using `BranchName.RemoteName()` because it might not necessarily be prefixed with "origin/".
@@ -178,10 +179,11 @@ func (self *Commands) BranchesSnapshot(querier subshelldomain.Querier) (gitdomai
 				existingBranchWithTracking.RemoteSHA = Some(branch.SHA)
 			} else {
 				result = append(result, gitdomain.BranchInfo{
-					Local:      None[gitdomain.BranchData](),
-					RemoteName: Some(remoteBranchName),
-					RemoteSHA:  Some(branch.SHA),
-					SyncStatus: gitdomain.SyncStatusRemoteOnly,
+					Local:        None[gitdomain.BranchData](),
+					RemoteName:   Some(remoteBranchName),
+					RemoteSHA:    Some(branch.SHA),
+					SyncStatus:   gitdomain.SyncStatusRemoteOnly,
+					WorktreePath: None[string](),
 				})
 			}
 		}
@@ -202,10 +204,11 @@ func (self *Commands) BranchesSnapshot(querier subshelldomain.Querier) (gitdomai
 			currentBranchOpt = gitdomain.LocalBranchNameOpt(headSHA.TrimmedString())
 			// prepend to result
 			result = slices.Insert(result, 0, gitdomain.BranchInfo{
-				Local:      Some(gitdomain.BranchData{Name: gitdomain.LocalBranchName(headSHA.String()), SHA: headSHA}),
-				RemoteName: None[gitdomain.RemoteBranchName](),
-				RemoteSHA:  None[gitdomain.SHA](),
-				SyncStatus: gitdomain.SyncStatusLocalOnly,
+				Local:        Some(gitdomain.BranchData{Name: gitdomain.LocalBranchName(headSHA.String()), SHA: headSHA}),
+				RemoteName:   None[gitdomain.RemoteBranchName](),
+				RemoteSHA:    None[gitdomain.SHA](),
+				SyncStatus:   gitdomain.SyncStatusLocalOnly,
+				WorktreePath: None[string](),
 			})
 		}
 	}
@@ -1055,10 +1058,11 @@ func makeBranchesSnapshotNewRepo(branch gitdomain.LocalBranchName) gitdomain.Bra
 		Active: Some(branch),
 		Branches: gitdomain.BranchInfos{
 			gitdomain.BranchInfo{
-				Local:      Some(gitdomain.BranchData{Name: branch, SHA: "0000000"}), // brand-new repos witout any commits don't have a SHA
-				SyncStatus: gitdomain.SyncStatusLocalOnly,
-				RemoteName: None[gitdomain.RemoteBranchName](),
-				RemoteSHA:  None[gitdomain.SHA](),
+				Local:        Some(gitdomain.BranchData{Name: branch, SHA: "0000000"}), // brand-new repos witout any commits don't have a SHA
+				SyncStatus:   gitdomain.SyncStatusLocalOnly,
+				RemoteName:   None[gitdomain.RemoteBranchName](),
+				RemoteSHA:    None[gitdomain.SHA](),
+				WorktreePath: None[string](),
 			},
 		},
 		DetachedHead: false,

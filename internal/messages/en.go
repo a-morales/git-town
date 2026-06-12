@@ -400,8 +400,7 @@ and will be removed in future versions of Git Town.`
 To continue after having committed the changes, run "git town continue".
 To continue with the uncommitted changes on the next branch, run "git town skip".
 To abort and go back to where you started, run "git town undo".`
-	WorktreeAnchorBranchMissing = "cannot determine where to create the worktree: branch %q not found"
-	WorktreeAnchorNoWorktree    = "cannot determine where to create the worktree: branch %q is not checked out in any worktree"
-	WorktreeCreated             = "created worktree at %s"
-	WorktreePathExists          = "cannot create worktree: directory %q already exists and is not empty"
+	WorktreeAnchorNoWorktree = "cannot determine where to create the worktree: branch %q is not checked out in any worktree"
+	WorktreeCreated          = "created worktree at %s"
+	WorktreePathExists       = "cannot create worktree: directory %q already exists and is not empty"
 )

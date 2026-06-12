@@ -26,32 +26,7 @@ func TestWorktreePathFor(t *testing.T) {
 func TestWorktreeParentDir(t *testing.T) {
 	t.Parallel()
 
-	t.Run("anchor branch does not exist", func(t *testing.T) {
-		t.Parallel()
-		snapshot := gitdomain.BranchesSnapshot{
-			Active:   Some[gitdomain.LocalBranchName]("feature1"),
-			Branches: gitdomain.BranchInfos{},
-		}
-		_, err := cmdhelpers.WorktreeParentDir(snapshot, "main", "/code/my-project/feature1")
-		must.Error(t, err)
-	})
-
-	t.Run("anchor exists but is not checked out anywhere", func(t *testing.T) {
-		t.Parallel()
-		snapshot := gitdomain.BranchesSnapshot{
-			Active: Some[gitdomain.LocalBranchName]("feature1"),
-			Branches: gitdomain.BranchInfos{
-				{
-					Local:      Some(gitdomain.BranchData{Name: "main"}),
-					SyncStatus: gitdomain.SyncStatusLocalOnly,
-				},
-			},
-		}
-		_, err := cmdhelpers.WorktreeParentDir(snapshot, "main", "/code/my-project/feature1")
-		must.Error(t, err)
-	})
-
-	t.Run("anchor is checked out in another worktree (bare layout)", func(t *testing.T) {
+	t.Run("anchor checked out in another worktree (bare/multi-worktree layout)", func(t *testing.T) {
 		t.Parallel()
 		snapshot := gitdomain.BranchesSnapshot{
 			Active: Some[gitdomain.LocalBranchName]("feature1"),
@@ -72,6 +47,37 @@ func TestWorktreeParentDir(t *testing.T) {
 		t.Parallel()
 		snapshot := gitdomain.BranchesSnapshot{
 			Active: Some[gitdomain.LocalBranchName]("main"),
+			Branches: gitdomain.BranchInfos{
+				{
+					Local:      Some(gitdomain.BranchData{Name: "main"}),
+					SyncStatus: gitdomain.SyncStatusLocalOnly,
+				},
+			},
+		}
+		have, err := cmdhelpers.WorktreeParentDir(snapshot, "main", "/code/my-project")
+		must.NoError(t, err)
+		must.EqOp(t, "/code", have)
+	})
+
+	t.Run("anchor not checked out and no current worktree returns an error", func(t *testing.T) {
+		t.Parallel()
+		snapshot := gitdomain.BranchesSnapshot{
+			Active: None[gitdomain.LocalBranchName](),
+			Branches: gitdomain.BranchInfos{
+				{
+					Local:      Some(gitdomain.BranchData{Name: "main"}),
+					SyncStatus: gitdomain.SyncStatusLocalOnly,
+				},
+			},
+		}
+		_, err := cmdhelpers.WorktreeParentDir(snapshot, "main", "")
+		must.Error(t, err)
+	})
+
+	t.Run("anchor not checked out, falls back to the current worktree (on another branch)", func(t *testing.T) {
+		t.Parallel()
+		snapshot := gitdomain.BranchesSnapshot{
+			Active: Some[gitdomain.LocalBranchName]("feature1"),
 			Branches: gitdomain.BranchInfos{
 				{
 					Local:      Some(gitdomain.BranchData{Name: "main"}),

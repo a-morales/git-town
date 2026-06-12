@@ -124,6 +124,7 @@ func revertChangesToCurrentBranch(args ExecuteArgs) error {
 		BranchInfos:              args.RunState.BeginBranchesSnapshot.Branches,
 		Config:                   args.Config,
 		EndBranch:                args.InitialBranch,
+		EndBranchInfos:           afterSnapshot.Branches,
 		FinalMessages:            args.FinalMessages,
 		UndoAPIProgram:           args.RunState.UndoAPIProgram,
 		UndoablePerennialCommits: args.RunState.UndoablePerennialCommits,

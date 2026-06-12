@@ -51,17 +51,26 @@ The new worktree is created as a **sibling of the worktree that has the `main`
 branch checked out**, named after the new branch:
 
 ```
-new worktree path = <parent-of-main-branch-worktree> / <branch-name>
+new worktree path = <anchor-parent-dir> / <branch-name>
 ```
 
-| `main` checked out at      | New branch | New worktree path                 |
-| -------------------------- | ---------- | --------------------------------- |
-| `code/my-project/main`     | `feature3` | `code/my-project/feature3`        |
-| `code/my-project` (direct) | `feature3` | `code/feature3`                   |
+The anchor parent directory is resolved as follows:
 
-This rule is **location-independent**: it produces the same result no matter
-which directory the command runs from, including the bare-repo container
-directory where there is no "current worktree".
+- if `main` is checked out in a **separate** worktree, new worktrees are created
+  next to that worktree;
+- otherwise (main is the current worktree's branch, or main is not checked out in
+  any worktree) they are created next to the **current** worktree.
+
+| Situation                                    | New branch | New worktree path          |
+| -------------------------------------------- | ---------- | -------------------------- |
+| `main` in its own worktree `…/my-project/main` | `feature3` | `…/my-project/feature3`    |
+| regular repo, `main` is the current branch   | `feature3` | sibling of the repo        |
+| regular repo, on another branch (e.g. beam)  | `feature3` | sibling of the repo        |
+
+For the common flat layouts (all worktrees inside one container directory) both
+rules produce the same directory, so the result is **independent of which
+directory the command runs from** — including the bare-repo container directory
+where there is no "current worktree" (see section 9).
 
 Branch names containing slashes are **preserved as nested paths**
 (`feature/foo` → `<parent>/feature/foo`), so the directory always matches the
@@ -173,8 +182,10 @@ cannot be deleted).
 Git Town aborts with a clear error, without modifying the repository, when:
 
 1. The computed worktree directory **exists and is non-empty**.
-2. The **anchor cannot be resolved** (a non-bare repo where `main` is not checked
-   out in any worktree, so there is no directory to anchor against).
+2. The **anchor cannot be resolved**. In a non-bare repo this never happens — the
+   path always falls back to the current worktree (section 1). It only occurs in
+   a bare repository that has no working tree *and* whose `main` branch is not
+   checked out in any worktree, so there is no directory to anchor against.
 3. The **branch already exists** locally or remotely (existing `hack` / `append`
    behavior, unchanged).
 

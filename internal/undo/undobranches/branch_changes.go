@@ -173,11 +173,11 @@ func (self BranchChanges) UndoProgram(args BranchChangesUndoProgramArgs) program
 	for _, addedLocalBranch := range self.LocalAdded {
 		if addedBranchInfo, hasAddedBranchInfo := args.EndBranchInfos.FindByLocalName(addedLocalBranch).Get(); hasAddedBranchInfo {
 			if worktreePath, hasWorktreePath := addedBranchInfo.WorktreePath.Get(); hasWorktreePath {
-				// the added branch was created in a separate worktree:
-				// remove that worktree (which frees the branch) before deleting the branch.
-				// No checkout is needed because the current worktree was never on this branch.
-				result.Add(&opcodes.WorktreeRemove{Path: worktreePath})
-				result.Add(&opcodes.BranchLocalDelete{Branch: addedLocalBranch})
+				// the added branch was created in a separate worktree: remove that
+				// worktree (moving any uncommitted changes back into the current
+				// worktree first) and delete the branch. No checkout is needed
+				// because the current worktree was never on this branch.
+				result.Add(&opcodes.WorktreeRemoveRestoringWIP{Branch: addedLocalBranch, Path: worktreePath})
 				continue
 			}
 		}

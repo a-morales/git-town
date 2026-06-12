@@ -57,8 +57,7 @@ func TestChanges(t *testing.T) {
 			UndoablePerennialCommits: []gitdomain.SHA{},
 		})
 		wantProgram := program.Program{
-			&opcodes.WorktreeRemove{Path: "/code/my-project/branch-1"},
-			&opcodes.BranchLocalDelete{Branch: "branch-1"},
+			&opcodes.WorktreeRemoveRestoringWIP{Branch: "branch-1", Path: "/code/my-project/branch-1"},
 			&opcodes.CheckoutIfExists{Branch: "main"},
 		}
 		must.Eq(t, wantProgram, haveProgram)
