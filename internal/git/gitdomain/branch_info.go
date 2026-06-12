@@ -19,6 +19,12 @@ type BranchInfo struct {
 
 	// SyncStatus of the branch.
 	SyncStatus SyncStatus
+
+	// WorktreePath contains the absolute path of the worktree this branch is
+	// checked out in, when that is a non-bare worktree other than the current
+	// one. It is None for the current worktree's branch (whose worktree is the
+	// current working directory) and for branches not checked out anywhere.
+	WorktreePath Option[string]
 }
 
 func (self BranchInfo) GetLocalOrRemoteName() BranchName {

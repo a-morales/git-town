@@ -119,11 +119,23 @@ All existing flags are supported. There are no incompatible-flag errors.
 
 `hack` bases the new branch on `main`; `append` on the current branch. Git Town
 already **skips syncing any branch that is checked out in another worktree**
-(`SyncStatusOtherWorktree`, see `internal/cmd/sync/sync_branch.go`). In the bare
-layout `main` always lives in its own worktree, so sync-of-`main` becomes a
-no-op. `git fetch` still runs, but the new branch is created from the **local**
-`main` ref, which may lag `origin/main` until `main` is synced in its own
-worktree. This matches existing Git Town worktree behavior.
+(`SyncStatusOtherWorktree`, see `internal/cmd/sync/sync_branch.go`). When `main`
+lives in another worktree (or we run from a bare repo), it cannot be
+fast-forwarded locally, so the **local `main` ref may be stale**.
+
+To keep the new branch current in that situation, the base (start point) is
+chosen as follows:
+
+- `git fetch` runs first (unless offline).
+- If `main` cannot be synced locally (it is checked out in another worktree, or
+  we are in a bare repo) **and** a remote tracking branch `origin/main` exists,
+  the new worktree is created off `origin/main` with `--no-track` (so the new
+  branch does not track `origin/main`).
+- Otherwise the new worktree is created off local `main`.
+
+This rule applies both to the bare-container case and to the case where `main`
+is in another worktree while running from a different worktree, so the two behave
+consistently.
 
 ### 6. Configuration
 
@@ -161,14 +173,63 @@ cannot be deleted).
 Git Town aborts with a clear error, without modifying the repository, when:
 
 1. The computed worktree directory **exists and is non-empty**.
-2. The **main-worktree anchor cannot be resolved** (e.g. a bare repo whose
-   `main` worktree was removed, so there is no directory to anchor against).
+2. The **anchor cannot be resolved** (a non-bare repo where `main` is not checked
+   out in any worktree, so there is no directory to anchor against).
 3. The **branch already exists** locally or remotely (existing `hack` / `append`
    behavior, unchanged).
+
+### 9. Running from a bare repository container
+
+A common worktree setup uses a bare repository whose worktrees are siblings
+inside a container directory:
+
+```
+my-project/
+  .git/        <- bare repository
+  main/        <- worktree for main
+  feature1/    <- worktree for feature1
+```
+
+Running `git town hack --worktree feature2` from `my-project/` itself (the bare
+container, **not** inside any worktree) is supported. Because `git worktree add`
+works fine from a bare repository, the new worktree is created at
+`my-project/feature2`.
+
+This requires Git Town to operate **without a working tree**, which the rest of
+Git Town normally assumes. The scope is therefore deliberately narrow:
+
+- **`hack` only.** `append --worktree` run from the bare container errors,
+  because it has no current branch to use as a parent. (`append --worktree` still
+  works from inside a worktree.)
+- **Worktree mode is required.** A plain in-place `hack` (worktree mode off) from
+  the bare container errors with guidance to use `--worktree` (or to set
+  `create-worktree`), since there is no working tree to check the branch out
+  into. With `create-worktree` enabled, `hack feature2` from the bare container
+  just works.
+- **Path / anchor.** The new worktree is created at `<container>/<branch>`, where
+  `<container>` is the parent of `git rev-parse --git-common-dir`. This is the
+  same directory whether `main` already has a worktree at `<container>/main` or
+  the bare repo has no worktrees yet (a fresh bare clone).
+- **Root directory.** Git Town uses the container (parent of the common Git dir)
+  as its repo root for loading the config file and storing runstate. This value
+  is identical whether computed from the container or from any worktree.
+- **Base ref.** As in section 5: fetch, then base off `origin/main` (`--no-track`)
+  when it exists, else local `main`.
+- **Flags.** `--commit` and `--beam` error from the bare container (there is no
+  working tree to take changes from and no current branch to move commits off).
+  `--propose`, `--prototype`, `--sync`, `--detached` and the rest work.
+- **Undo.** `git town undo` run from the bare container reverses the operation
+  (`git worktree remove` + delete the branch), skipping any checkout step since
+  there is no working tree to check out into.
+
+Detection uses `git rev-parse --is-bare-repository`. Permission to proceed in a
+bare repository is opt-in per command (only `hack` and `undo` allow it); all
+other commands keep rejecting bare repositories as before.
 
 ## Out of scope (for the first iteration)
 
 - `prepend` and other branch-creating commands (can reuse the same opcodes
   later).
-- A configurable worktree base location beyond the sibling-of-main rule.
+- A configurable worktree base location beyond the rules above.
 - Shell integration that automatically `cd`s into the new worktree.
+- `append --worktree` from the bare container (no current branch).

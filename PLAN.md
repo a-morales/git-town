@@ -277,6 +277,94 @@ worktree.
   the `create-worktree` config setting.
 - Changelog entry.
 
+## Slice 11 — Base off `origin/main` when `main` can't be synced locally
+
+Refines the start point used by `WorktreeAddAndCheckoutNewBranch` so the new
+branch is current even when local `main` is stale (it lives in another worktree,
+or we are in a bare repo). See WORKTREE_FLAG.md section 5.
+
+### `internal/git/commands.go`
+
+- Extend `CreateWorktree` to accept a start point that may be a remote ref and add
+  `--no-track` in that case (mirror `CreateAndCheckoutBranchWithParent`, which
+  appends `--no-track` when the parent `IsRemoteBranchName()`).
+
+### `WorktreeAddAndCheckoutNewBranch` opcode
+
+- After resolving the ancestor branch (e.g. `main`), decide the start point:
+  - if the ancestor is checked out in another worktree (or the repo is bare)
+    **and** a tracking branch `origin/<ancestor>` exists in `args.BranchInfos`,
+    use that remote ref as the start point (with `--no-track`);
+  - otherwise use the local ancestor branch.
+- Ensure a `git fetch` still precedes this (the existing sync/fetch step in
+  `appendProgram` already fetches unless offline / open changes).
+
+### Tests
+
+- Update `features/hack/worktree/main_in_another_worktree.feature`: the expected
+  command becomes `git worktree add -b new --no-track {{ worktree-path "new" }}
+  origin/main` (main is in another worktree, so we base off `origin/main`).
+- Add a scenario without a remote (offline / no origin) asserting the fallback to
+  local `main`.
+
+## Slice 12 — Running `hack --worktree` from a bare repository container
+
+Implements WORKTREE_FLAG.md section 9: `git town hack --worktree feature2` run
+from the bare container directory (no working tree). Depends on Slices 2, 3, 11.
+
+### Detection and `OpenRepo` (`internal/execute/open_repo.go`)
+
+- Add `AllowBare bool` to `OpenRepoArgs`; `hack` and `undo` set it true, all other
+  commands leave it false (so they keep rejecting bare repos).
+- Query `git rev-parse --is-bare-repository`. When bare:
+  - if `!AllowBare`, keep returning `messages.RepoOutside`;
+  - if `AllowBare`, do **not** error on the missing work-tree root. Set the repo
+    root to the **parent of `git rev-parse --git-common-dir`** (the container).
+    Add a `git.Commands` helper `CommonDirParent` / reuse a `RootDirectory`-style
+    query. Skip the startup `chdir`-to-root if already there.
+  - return an `IsBare bool` (or `Option`-typed root) on `OpenRepoResult` so the
+    command can branch on it.
+
+### `internal/cmd/hack.go` (`determineHackData`)
+
+- When `repo.IsBare`:
+  - **require worktree mode**; if worktree mode is off, return a clear error
+    (`messages.WorktreeBareNeedsFlag`).
+  - error on `--commit` / `--beam` (`messages.WorktreeBareNoCommit` /
+    `messages.WorktreeBareNoBeam`).
+  - **skip `RepoStatus`** (`git status` fails with no work tree) → treat as no
+    open changes.
+  - compute the worktree path as `repo.RootDir/<targetBranch>` (the container is
+    the anchor); still apply the path-exists failure check.
+  - `initialBranch`: the worktree-mode program never references it, but
+    `branchesSnapshot.Active` may report `main` (the bare HEAD). Ensure nothing in
+    the bare path depends on a real current branch.
+- Confirm `BranchesSnapshot` works from the bare repo (it uses `for-each-ref`, not
+  `git status`) — it does.
+
+### Undo from the bare container
+
+- `undo` must also pass `AllowBare: true` to `OpenRepo`.
+- The added-branch undo (Slice 3) already skips `CheckoutIfNeeded` for a branch in
+  a worktree and emits `WorktreeRemove` before `BranchLocalDelete`; verify this
+  path runs cleanly with no working tree (no stray checkout opcodes).
+
+### Messages (`internal/messages/en.go`)
+
+- `WorktreeBareNeedsFlag`, `WorktreeBareNoCommit`, `WorktreeBareNoBeam`.
+
+### Tests
+
+- New `features/hack/worktree/bare_container.feature`: set up a bare repo with a
+  `main` worktree, run `git-town hack --worktree feature2` **from the container**;
+  assert the `git worktree add ... origin/main` command, that `feature2` exists in
+  a new worktree at `<container>/feature2`, and the undo scenario.
+- Failure scenarios: plain `hack feature2` from the container errors;
+  `hack --worktree --commit` / `--beam` from the container error.
+- The cucumber harness already models a bare linked worktree
+  (`AddBareRepoLinkedWorktree`); extend the fixture as needed to run a command
+  from the bare container directory itself.
+
 ## Cross-cutting checklist
 
 - [ ] Worktree-targeted opcodes are atomic (chdir in + `defer` chdir back); the
@@ -296,4 +384,5 @@ worktree.
 2. Slices 4–6 (WIP, commit, beam) with full-reversal undo.
 3. Slice 7 (`append`).
 4. Slices 8–9 (config + setup assistant).
-5. Slice 10 (docs).
+5. Slice 11 (`origin/main` base ref) + Slice 12 (bare container support).
+6. Slice 10 (docs).

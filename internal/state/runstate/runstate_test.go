@@ -103,7 +103,8 @@ func TestRunState(t *testing.T) {
       },
       "RemoteName": "origin/branch",
       "RemoteSHA": "222222",
-      "SyncStatus": "ahead"
+      "SyncStatus": "ahead",
+      "WorktreePath": null
     }
   ],
   "Command": "sync",
@@ -118,7 +119,8 @@ func TestRunState(t *testing.T) {
         },
         "RemoteName": "origin/branch-1",
         "RemoteSHA": "222222",
-        "SyncStatus": "not in sync"
+        "SyncStatus": "not in sync",
+        "WorktreePath": null
       },
       {
         "Local": {
@@ -127,7 +129,8 @@ func TestRunState(t *testing.T) {
         },
         "RemoteName": null,
         "RemoteSHA": null,
-        "SyncStatus": "local only"
+        "SyncStatus": "local only",
+        "WorktreePath": null
       }
     ],
     "DetachedHead": true

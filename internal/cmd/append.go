@@ -235,6 +235,7 @@ type appendFeatureData struct {
 	commitsToBeam             gitdomain.Commits
 	config                    config.ValidatedConfig
 	connector                 Option[forgedomain.Connector]
+	createWorktree            configdomain.CreateWorktree
 	detectedForgeType         Option[forgedomain.DetectedForgeType]
 	hasOpenChanges            bool
 	initialBranch             gitdomain.LocalBranchName
@@ -249,6 +250,7 @@ type appendFeatureData struct {
 	remotes                   gitdomain.Remotes
 	stashSize                 gitdomain.StashSize
 	targetBranch              gitdomain.LocalBranchName
+	worktreePath              string
 }
 
 func determineAppendData(args determineAppendDataArgs, repo execute.OpenRepoResult) (appendFeatureData, configdomain.ProgramFlow, error) {
@@ -447,10 +449,18 @@ func appendProgram(frontend subshelldomain.Runner, data appendFeatureData, final
 			PushBranches:        data.config.NormalConfig.PushBranches,
 		})
 	}
-	prog.Value.Add(&opcodes.BranchCreateAndCheckoutExistingParent{
-		Ancestors: data.newBranchParentCandidates,
-		Branch:    data.targetBranch,
-	})
+	if data.createWorktree.ShouldCreateWorktree() {
+		prog.Value.Add(&opcodes.WorktreeAddAndCheckoutNewBranch{
+			Ancestors: data.newBranchParentCandidates,
+			Branch:    data.targetBranch,
+			Path:      data.worktreePath,
+		})
+	} else {
+		prog.Value.Add(&opcodes.BranchCreateAndCheckoutExistingParent{
+			Ancestors: data.newBranchParentCandidates,
+			Branch:    data.targetBranch,
+		})
+	}
 	if data.remotes.HasRemote(data.config.NormalConfig.DevRemote) && data.config.NormalConfig.ShareNewBranches == configdomain.ShareNewBranchesPush && data.config.NormalConfig.Offline.IsOnline() {
 		prog.Value.Add(&opcodes.BranchTrackingCreate{Branch: data.targetBranch})
 	}
@@ -494,11 +504,15 @@ func appendProgram(frontend subshelldomain.Runner, data appendFeatureData, final
 			},
 		)
 	}
-	if data.commit {
+	switch {
+	case data.createWorktree.ShouldCreateWorktree():
+		// The new branch lives in a separate worktree and the current worktree was
+		// never touched, so there is nothing to check out or restore here.
+	case data.commit.ShouldCommit():
 		prog.Value.Add(
 			&opcodes.Checkout{Branch: data.initialBranch},
 		)
-	} else {
+	default:
 		previousBranchCandidates := []Option[gitdomain.LocalBranchName]{Some(data.initialBranch), data.previousBranch}
 		cmdhelpers.Wrap(prog, cmdhelpers.WrapOptions{
 			DryRun:                   data.config.NormalConfig.DryRun,

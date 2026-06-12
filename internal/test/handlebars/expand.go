@@ -2,6 +2,7 @@ package handlebars
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -128,6 +129,11 @@ func Expand(text string, args ExpandArgs) string {
 				}
 			}
 			text = strings.Replace(text, match, commit.SHA.String(), 1)
+		case strings.HasPrefix(match, "{{ worktree-path "):
+			inner := strings.TrimSuffix(strings.TrimPrefix(match, "{{ worktree-path "), " }}")
+			branchName := strings.Trim(inner, `"`)
+			worktreePath := filepath.Join(filepath.Dir(args.DevRepoDir), branchName)
+			text = strings.Replace(text, match, worktreePath, 1)
 		default:
 			panic(fmt.Sprintf("DataTable.Expand: unknown template expression %q", match))
 		}
@@ -143,6 +149,7 @@ var (
 type ExpandArgs struct {
 	BeforeRunDevSHAs       gitdomain.Commits
 	BeforeRunOriginSHAsOpt Option[gitdomain.Commits]
+	DevRepoDir             string
 	InitialDevCommits      gitdomain.Commits
 	InitialOriginCommits   Option[gitdomain.Commits]
 	InitialWorktreeCommits Option[gitdomain.Commits]

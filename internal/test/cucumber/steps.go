@@ -342,6 +342,7 @@ echo "new line" >> file
 		expectedText := handlebars.Expand(expectedContent.Content, handlebars.ExpandArgs{
 			BeforeRunDevSHAs:       state.beforeRunDevSHAs.GetOrPanic(),
 			BeforeRunOriginSHAsOpt: state.beforeRunOriginSHAs,
+			DevRepoDir:             devRepo.WorkingDir,
 			InitialDevCommits:      state.initialDevSHAs.GetOrPanic(),
 			InitialOriginCommits:   state.initialOriginSHAs,
 			InitialWorktreeCommits: state.initialWorktreeSHAs,
@@ -490,6 +491,7 @@ echo "new line" >> file
 		expanded := dataTable.Expand(handlebars.ExpandArgs{
 			BeforeRunDevSHAs:       state.beforeRunDevSHAs.GetOrPanic(),
 			BeforeRunOriginSHAsOpt: state.beforeRunOriginSHAs,
+			DevRepoDir:             devRepo.WorkingDir,
 			InitialDevCommits:      state.initialDevSHAs.GetOrPanic(),
 			InitialOriginCommits:   state.initialOriginSHAs,
 			InitialWorktreeCommits: state.initialWorktreeSHAs,

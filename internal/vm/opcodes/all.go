@@ -115,5 +115,7 @@ func All() []shared.Opcode {
 		&SyncFeatureBranchMerge{},
 		&SyncFeatureBranchRebase{},
 		&UndoLastCommit{},
+		&WorktreeAddAndCheckoutNewBranch{},
+		&WorktreeRemove{},
 	} //exhaustruct:ignore
 }

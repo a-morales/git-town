@@ -1,6 +1,8 @@
 package git_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/git-town/git-town/v23/internal/config/configdomain"
@@ -723,15 +725,18 @@ func TestBackendCommands(t *testing.T) {
 				runtime.CreateBranch("branch", initial.BranchName())
 				worktreeDir := t.TempDir()
 				runtime.AddWorktree(worktreeDir, "branch")
+				// Git reports the symlink-resolved worktree path (e.g. /private/var on macOS).
+				resolvedWorktreeDir := asserts.NoError1(filepath.EvalSymlinks(worktreeDir))
 				commits := asserts.NoError1(runtime.Git.CommitsInBranch(runtime, initial, None[gitdomain.LocalBranchName]()))
 				want := gitdomain.BranchesSnapshot{
 					Active: Some[gitdomain.LocalBranchName]("initial"),
 					Branches: gitdomain.BranchInfos{
 						gitdomain.BranchInfo{
-							Local:      Some(gitdomain.BranchData{Name: "branch", SHA: commits[0].SHA}),
-							SyncStatus: gitdomain.SyncStatusOtherWorktree,
-							RemoteName: None[gitdomain.RemoteBranchName](),
-							RemoteSHA:  None[gitdomain.SHA](),
+							Local:        Some(gitdomain.BranchData{Name: "branch", SHA: commits[0].SHA}),
+							SyncStatus:   gitdomain.SyncStatusOtherWorktree,
+							RemoteName:   None[gitdomain.RemoteBranchName](),
+							RemoteSHA:    None[gitdomain.SHA](),
+							WorktreePath: Some(resolvedWorktreeDir),
 						},
 						gitdomain.BranchInfo{
 							Local:      Some(gitdomain.BranchData{Name: initial, SHA: commits[0].SHA}),
@@ -1660,5 +1665,43 @@ func TestBackendCommands(t *testing.T) {
 			have := git.LastBranchInRef(give)
 			must.EqOp(t, want, have)
 		}
+	})
+}
+
+func TestWorktreeCommands(t *testing.T) {
+	t.Parallel()
+	initial := gitdomain.LocalBranchName("initial")
+
+	t.Run("CreateWorktree", func(t *testing.T) {
+		t.Parallel()
+		runtime := testruntime.Create(t)
+		worktreeDir := filepath.Join(t.TempDir(), "feature")
+		err := runtime.Git.CreateWorktree(runtime, worktreeDir, "feature", initial.Location())
+		must.NoError(t, err)
+		// the new branch exists and is reported as active in another worktree
+		snapshot := asserts.NoError1(runtime.Git.BranchesSnapshot(runtime))
+		branchInfo, hasBranchInfo := snapshot.Branches.FindByLocalName("feature").Get()
+		must.True(t, hasBranchInfo)
+		must.EqOp(t, gitdomain.SyncStatusOtherWorktree, branchInfo.SyncStatus)
+		// the worktree path points at the created directory (symlink-resolved)
+		resolvedWorktreeDir := asserts.NoError1(filepath.EvalSymlinks(worktreeDir))
+		must.Eq(t, Some(resolvedWorktreeDir), branchInfo.WorktreePath)
+	})
+
+	t.Run("RemoveWorktree", func(t *testing.T) {
+		t.Parallel()
+		runtime := testruntime.Create(t)
+		worktreeDir := filepath.Join(t.TempDir(), "feature")
+		asserts.NoError(runtime.Git.CreateWorktree(runtime, worktreeDir, "feature", initial.Location()))
+		err := runtime.Git.RemoveWorktree(runtime, worktreeDir)
+		must.NoError(t, err)
+		// the worktree directory is gone
+		_, statErr := os.Stat(worktreeDir)
+		must.True(t, os.IsNotExist(statErr))
+		// the branch still exists but is no longer active in another worktree
+		snapshot := asserts.NoError1(runtime.Git.BranchesSnapshot(runtime))
+		branchInfo, hasBranchInfo := snapshot.Branches.FindByLocalName("feature").Get()
+		must.True(t, hasBranchInfo)
+		must.NotEqOp(t, gitdomain.SyncStatusOtherWorktree, branchInfo.SyncStatus)
 	})
 }

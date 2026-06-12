@@ -154,12 +154,16 @@ func (self *Commands) BranchesSnapshot(querier subshelldomain.Querier) (gitdomai
 		switch {
 		case branch.Worktree && !branch.Head:
 			result = append(result, gitdomain.BranchInfo{
-				Local:      Some(gitdomain.BranchData{Name: branch.BranchName.LocalName(), SHA: branch.SHA}),
-				RemoteName: branch.UpstreamOption,
-				RemoteSHA:  None[gitdomain.SHA](), // may be added later
-				SyncStatus: gitdomain.SyncStatusOtherWorktree,
+				Local:        Some(gitdomain.BranchData{Name: branch.BranchName.LocalName(), SHA: branch.SHA}),
+				RemoteName:   branch.UpstreamOption,
+				RemoteSHA:    None[gitdomain.SHA](), // may be added later
+				SyncStatus:   gitdomain.SyncStatusOtherWorktree,
+				WorktreePath: branch.WorktreePath,
 			})
 		case isLocalRefName(branch.RefName):
+			// Note: the WorktreePath is intentionally not populated here. The only branch
+			// reaching this case with a worktree path is the current worktree's HEAD, whose
+			// path is the current working directory - callers resolve that via the repo root.
 			syncStatus := determineSyncStatus(branch.Track, branch.UpstreamOption)
 			result = append(result, gitdomain.BranchInfo{
 				Local:      Some(gitdomain.BranchData{Name: branch.BranchName.LocalName(), SHA: branch.SHA}),
@@ -417,6 +421,12 @@ func (self *Commands) CreateTrackingBranch(runner subshelldomain.Runner, branch 
 	args = append(args, "-u", remote.String())
 	args = append(args, branch.String())
 	return runner.Run("git", args...)
+}
+
+// CreateWorktree creates a new worktree at the given path containing a new branch
+// based on the given parent, and checks the new branch out in that worktree.
+func (self *Commands) CreateWorktree(runner subshelldomain.Runner, path string, branch gitdomain.LocalBranchName, parent gitdomain.Location) error {
+	return runner.Run("git", "worktree", "add", "-b", branch.String(), path, parent.String())
 }
 
 // CurrentBranch provides the name of the current branch.
@@ -773,6 +783,11 @@ func (self *Commands) RemoveFile(runner subshelldomain.Runner, fileName string) 
 	return runner.Run("git", "rm", fileName)
 }
 
+// RemoveWorktree removes the worktree at the given path.
+func (self *Commands) RemoveWorktree(runner subshelldomain.Runner, path string) error {
+	return runner.Run("git", "worktree", "remove", path)
+}
+
 func (self *Commands) RenameBranch(runner subshelldomain.Runner, oldName, newName gitdomain.LocalBranchName) error {
 	return runner.Run("git", "branch", "--move", oldName.String(), newName.String())
 }
@@ -921,6 +936,9 @@ type branchesQueryResult struct {
 	// Worktree is true if this branch is checked out in a non-bare worktree other than the current one.
 	// It is false for branches that are only "associated" with a bare worktree via HEAD.
 	Worktree bool
+	// WorktreePath contains the path of the worktree this branch is checked out in
+	// (a non-bare worktree, including the current one), or None if there is none.
+	WorktreePath Option[string]
 }
 
 type branchesQueryResults []branchesQueryResult
@@ -969,6 +987,10 @@ func branchesQuery(querier subshelldomain.Querier) (branchesQueryResults, error)
 		// A branch is considered "in another worktree" only when checked out in a non-bare worktree.
 		// Bare repos have no working tree, so their HEAD branch is not truly locked.
 		worktree := wtPath != "" && !isBareWorktree(wtPath)
+		worktreePath := None[string]()
+		if worktree {
+			worktreePath = Some(wtPath)
+		}
 		symref := parseYN(strings.TrimPrefix(parts[5], "symref:"))
 		upstreamOption := gitdomain.RemoteBranchNameOpt(strings.TrimPrefix(parts[6], "upstream:")) // the tracking branch name
 		track := strings.TrimPrefix(parts[7], "track:")
@@ -981,6 +1003,7 @@ func branchesQuery(querier subshelldomain.Querier) (branchesQueryResults, error)
 			Track:          track,
 			UpstreamOption: upstreamOption,
 			Worktree:       worktree,
+			WorktreePath:   worktreePath,
 		}
 	}
 	return result, nil

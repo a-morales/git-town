@@ -171,6 +171,16 @@ func (self BranchChanges) UndoProgram(args BranchChangesUndoProgramArgs) program
 
 	// remove locally added branches
 	for _, addedLocalBranch := range self.LocalAdded {
+		if addedBranchInfo, hasAddedBranchInfo := args.EndBranchInfos.FindByLocalName(addedLocalBranch).Get(); hasAddedBranchInfo {
+			if worktreePath, hasWorktreePath := addedBranchInfo.WorktreePath.Get(); hasWorktreePath {
+				// the added branch was created in a separate worktree:
+				// remove that worktree (which frees the branch) before deleting the branch.
+				// No checkout is needed because the current worktree was never on this branch.
+				result.Add(&opcodes.WorktreeRemove{Path: worktreePath})
+				result.Add(&opcodes.BranchLocalDelete{Branch: addedLocalBranch})
+				continue
+			}
+		}
 		if args.EndBranch == addedLocalBranch {
 			result.Add(&opcodes.CheckoutIfNeeded{Branch: args.BeginBranch})
 		}
@@ -215,10 +225,13 @@ func (self BranchChanges) UndoProgram(args BranchChangesUndoProgramArgs) program
 }
 
 type BranchChangesUndoProgramArgs struct {
-	BeginBranch              gitdomain.LocalBranchName
-	BranchInfos              gitdomain.BranchInfos
-	Config                   config.ValidatedConfig
-	EndBranch                gitdomain.LocalBranchName
+	BeginBranch gitdomain.LocalBranchName
+	BranchInfos gitdomain.BranchInfos
+	Config      config.ValidatedConfig
+	EndBranch   gitdomain.LocalBranchName
+	// EndBranchInfos are the branches as they were at the end of the command being undone.
+	// Used to find the worktree a newly added branch was created in, so undo can remove it.
+	EndBranchInfos           gitdomain.BranchInfos
 	FinalMessages            stringslice.Collector
 	UndoAPIProgram           program.Program
 	UndoablePerennialCommits []gitdomain.SHA

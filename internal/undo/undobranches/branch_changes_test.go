@@ -18,6 +18,52 @@ import (
 func TestChanges(t *testing.T) {
 	t.Parallel()
 
+	t.Run("branch added in a worktree", func(t *testing.T) {
+		t.Parallel()
+		before := gitdomain.BranchesSnapshot{
+			Branches: gitdomain.BranchInfos{},
+			Active:   gitdomain.LocalBranchNameOpt("main"),
+		}
+		after := gitdomain.BranchesSnapshot{
+			Branches: gitdomain.BranchInfos{
+				gitdomain.BranchInfo{
+					Local:        Some(gitdomain.BranchData{Name: "branch-1", SHA: "111111"}),
+					RemoteName:   None[gitdomain.RemoteBranchName](),
+					RemoteSHA:    None[gitdomain.SHA](),
+					SyncStatus:   gitdomain.SyncStatusOtherWorktree,
+					WorktreePath: Some("/code/my-project/branch-1"),
+				},
+			},
+			// the current worktree stayed on "main"
+			Active: gitdomain.LocalBranchNameOpt("main"),
+		}
+		haveChanges := undobranches.NewBranchSpans(before, after).Changes()
+		config := config.ValidatedConfig{
+			ValidatedConfigData: configdomain.ValidatedConfigData{
+				MainBranch: "main",
+			},
+			NormalConfig: config.NormalConfig{
+				Lineage:           configdomain.NewLineageWith(configdomain.LineageData{"branch-1": "main"}),
+				PushHook:          false,
+				PerennialBranches: gitdomain.LocalBranchNames{},
+			},
+		}
+		haveProgram := haveChanges.UndoProgram(undobranches.BranchChangesUndoProgramArgs{
+			BeginBranch:              before.Active.GetOrPanic(),
+			BranchInfos:              before.Branches,
+			Config:                   config,
+			EndBranch:                after.Active.GetOrPanic(),
+			EndBranchInfos:           after.Branches,
+			UndoablePerennialCommits: []gitdomain.SHA{},
+		})
+		wantProgram := program.Program{
+			&opcodes.WorktreeRemove{Path: "/code/my-project/branch-1"},
+			&opcodes.BranchLocalDelete{Branch: "branch-1"},
+			&opcodes.CheckoutIfExists{Branch: "main"},
+		}
+		must.Eq(t, wantProgram, haveProgram)
+	})
+
 	t.Run("local-only branch added", func(t *testing.T) {
 		t.Parallel()
 		before := gitdomain.BranchesSnapshot{

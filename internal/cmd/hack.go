@@ -71,6 +71,7 @@ func hackCmd() *cobra.Command {
 	addStashFlag, readStashFlag := flags.Stash()
 	addSyncFlag, readSyncFlag := flags.Sync()
 	addVerboseFlag, readVerboseFlag := flags.Verbose()
+	addWorktreeFlag, readWorktreeFlag := flags.Worktree()
 	cmd := cobra.Command{
 		Use:     "hack <branch>",
 		GroupID: cmdhelpers.GroupIDBasic,
@@ -90,7 +91,8 @@ func hackCmd() *cobra.Command {
 			stash, errStash := readStashFlag(cmd)
 			sync, errSync := readSyncFlag(cmd)
 			verbose, errVerbose := readVerboseFlag(cmd)
-			if err := cmp.Or(errAutoResolve, errBeam, errCommit, errCommitMessage, errDetached, errDryRun, errInteractive, errPropose, errPrototype, errStash, errSync, errVerbose); err != nil {
+			worktree, errWorktree := readWorktreeFlag(cmd)
+			if err := cmp.Or(errAutoResolve, errBeam, errCommit, errCommitMessage, errDetached, errDryRun, errInteractive, errPropose, errPrototype, errStash, errSync, errVerbose, errWorktree); err != nil {
 				return err
 			}
 			if commitMessage.IsSome() || propose.ShouldPropose() {
@@ -119,6 +121,7 @@ func hackCmd() *cobra.Command {
 				commitMessage: commitMessage,
 				propose:       propose,
 				prototype:     prototype,
+				worktree:      worktree,
 			})
 		},
 	}
@@ -134,6 +137,7 @@ func hackCmd() *cobra.Command {
 	addStashFlag(&cmd)
 	addSyncFlag(&cmd)
 	addVerboseFlag(&cmd)
+	addWorktreeFlag(&cmd)
 	return &cmd
 }
 
@@ -145,6 +149,7 @@ type hackArgs struct {
 	commitMessage Option[gitdomain.CommitMessage]
 	propose       configdomain.Propose
 	prototype     configdomain.Prototype
+	worktree      Option[configdomain.CreateWorktree]
 }
 
 func executeHack(args hackArgs) error {
@@ -327,6 +332,18 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 	if branchesSnapshot.Branches.HasMatchingTrackingBranchFor(targetBranch) {
 		return emptyResult, configdomain.ProgramFlowExit, fmt.Errorf(messages.BranchAlreadyExistsRemotely, targetBranch, config.DevRemote)
 	}
+	createWorktree, _ := args.worktree.Get()
+	worktreePath := ""
+	if createWorktree.ShouldCreateWorktree() {
+		parentDir, err := cmdhelpers.WorktreeParentDir(branchesSnapshot, validatedConfig.ValidatedConfigData.MainBranch, repo.RootDir.String())
+		if err != nil {
+			return emptyResult, configdomain.ProgramFlowExit, err
+		}
+		worktreePath = cmdhelpers.WorktreePathFor(parentDir, targetBranch)
+		if entries, err := os.ReadDir(worktreePath); err == nil && len(entries) > 0 {
+			return emptyResult, configdomain.ProgramFlowExit, fmt.Errorf(messages.WorktreePathExists, worktreePath)
+		}
+	}
 	branchNamesToSync := gitdomain.LocalBranchNames{validatedConfig.ValidatedConfigData.MainBranch}
 	if validatedConfig.NormalConfig.Detached {
 		branchNamesToSync = validatedConfig.RemovePerennials(branchNamesToSync)
@@ -414,6 +431,7 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 		commitsToBeam:             commitsToBeam,
 		config:                    validatedConfig,
 		connector:                 connector,
+		createWorktree:            createWorktree,
 		detectedForgeType:         detectedForgeType,
 		hasOpenChanges:            repoStatus.OpenChanges,
 		initialBranch:             initialBranch,
@@ -428,6 +446,7 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 		remotes:                   remotes,
 		stashSize:                 stashSize,
 		targetBranch:              targetBranch,
+		worktreePath:              worktreePath,
 	}
 	return data, configdomain.ProgramFlowContinue, nil
 }
