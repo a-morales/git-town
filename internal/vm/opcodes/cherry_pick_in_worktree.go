@@ -13,6 +13,18 @@ type CherryPickInWorktree struct {
 	SHA  gitdomain.SHA
 }
 
+func (self *CherryPickInWorktree) Abort() []shared.Opcode {
+	return []shared.Opcode{
+		&CherryPickAbortInWorktree{Path: self.Path},
+	}
+}
+
+func (self *CherryPickInWorktree) Continue() []shared.Opcode {
+	return []shared.Opcode{
+		&CherryPickContinueInWorktree{Path: self.Path},
+	}
+}
+
 func (self *CherryPickInWorktree) Run(args shared.RunArgs) error {
 	return runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, func() error {
 		return args.Git.CherryPick(args.Frontend, self.SHA)
