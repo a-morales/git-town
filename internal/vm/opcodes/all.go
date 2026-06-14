@@ -33,6 +33,7 @@ func All() []shared.Opcode {
 		&BrowserOpen{},
 		&ChangesDiscard{},
 		&ChangesStage{},
+		&ChangesUnstageAllInWorktree{},
 		&ChangesUnstageAll{},
 		&CheckoutDescendentOrOtherIfNeeded{},
 		&CheckoutDescendentOrOther{},
