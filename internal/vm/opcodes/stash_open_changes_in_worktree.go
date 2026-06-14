@@ -12,7 +12,7 @@ type StashOpenChangesInWorktree struct {
 }
 
 func (self *StashOpenChangesInWorktree) Run(args shared.RunArgs) error {
-	return runInWorktree(self.Path, func() error {
+	return runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, func() error {
 		return args.Git.Stash(args.Frontend)
 	})
 }

@@ -14,7 +14,7 @@ type CherryPickInWorktree struct {
 }
 
 func (self *CherryPickInWorktree) Run(args shared.RunArgs) error {
-	return runInWorktree(self.Path, func() error {
+	return runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, func() error {
 		return args.Git.CherryPick(args.Frontend, self.SHA)
 	})
 }

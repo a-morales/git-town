@@ -18,7 +18,7 @@ type StashPopInWorktree struct {
 }
 
 func (self *StashPopInWorktree) Run(args shared.RunArgs) error {
-	return runInWorktree(self.Path, func() error {
+	return runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, func() error {
 		if err := args.Git.PopStash(args.Frontend); err != nil {
 			args.FinalMessages.Add(messages.DiffConflictWithMain)
 			return nil

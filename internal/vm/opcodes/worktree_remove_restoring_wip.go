@@ -20,7 +20,7 @@ type WorktreeRemoveRestoringWIP struct {
 
 func (self *WorktreeRemoveRestoringWIP) Run(args shared.RunArgs) error {
 	hasOpenChanges := false
-	if err := runInWorktree(self.Path, func() error {
+	if err := runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, func() error {
 		status, err := args.Git.RepoStatus(args.Backend)
 		if err != nil {
 			return err
