@@ -453,10 +453,10 @@ func appendProgram(frontend subshelldomain.Runner, data appendFeatureData, final
 	}
 	if data.createWorktree.ShouldCreateWorktree() {
 		// Move any uncommitted changes from the current worktree into the new one:
-		// stash them here, create the worktree, then pop them there. When committing,
-		// the changes must move regardless of the stash setting (there is no
-		// check-out-carries-changes path across worktrees).
-		transportOpenChanges := data.hasOpenChanges && (data.config.NormalConfig.Stash.ShouldStash() || data.commit.ShouldCommit())
+		// stash them here, create the worktree, then pop them there. There is no
+		// check-out-carries-changes path across worktrees, so the WIP always moves
+		// when present - the "stash" setting is moot in worktree mode.
+		transportOpenChanges := data.hasOpenChanges
 		if transportOpenChanges {
 			prog.Value.Add(&opcodes.StashOpenChanges{})
 		}
