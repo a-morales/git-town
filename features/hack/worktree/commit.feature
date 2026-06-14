@@ -8,12 +8,12 @@ Feature: hack into a new worktree and commit the open changes
 
   Scenario: result
     Then Git Town runs the commands
-      | BRANCH | COMMAND                                                       |
-      | main   | git add -A                                                    |
-      |        | git stash -m "Git Town WIP"                                   |
-      |        | git worktree add -b feature {{ worktree-path "feature" }} main |
-      |        | git stash pop                                                 |
-      |        | git commit -m work                                            |
+      | BRANCH  | COMMAND                                                        |
+      | main    | git add -A                                                     |
+      |         | git stash -m "Git Town WIP"                                    |
+      |         | git worktree add -b feature {{ worktree-path "feature" }} main |
+      | feature | git stash pop                                                  |
+      |         | git commit -m work                                             |
     And the current branch is still "main"
     And no uncommitted files exist now
 

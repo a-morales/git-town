@@ -18,7 +18,7 @@ type CommitInWorktree struct {
 }
 
 func (self *CommitInWorktree) Run(args shared.RunArgs) error {
-	return runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, func() error {
+	return runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, args.Git.CurrentBranchCache, func() error {
 		return args.Git.Commit(args.Frontend, configdomain.UseMessageWithFallbackToDefault(self.Message, self.FallbackToDefaultCommitMessage), self.AuthorOverride, configdomain.CommitHookEnabled)
 	})
 }

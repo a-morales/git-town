@@ -7,8 +7,8 @@ Feature: hack a new branch in a new worktree
 
   Scenario: result
     Then Git Town runs the commands
-      | BRANCH | COMMAND                                                       |
-      | main   | git fetch --prune --tags                                      |
+      | BRANCH | COMMAND                                                        |
+      | main   | git fetch --prune --tags                                       |
       |        | git worktree add -b feature {{ worktree-path "feature" }} main |
     And the current branch is still "main"
     And this lineage exists now

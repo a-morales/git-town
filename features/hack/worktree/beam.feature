@@ -16,7 +16,7 @@ Feature: beam a commit onto a new branch in a new worktree
 
   Scenario: result
     Then Git Town runs the commands
-      | BRANCH   | COMMAND                                                                                            |
+      | BRANCH   | COMMAND                                                                                             |
       | existing | git worktree add -b new {{ worktree-path "new" }} main                                              |
       | new      | git cherry-pick {{ sha-initial 'beamed' }}                                                          |
       | existing | git -c rebase.updateRefs=false rebase --onto {{ sha-initial 'beamed' }}^ {{ sha-initial 'beamed' }} |

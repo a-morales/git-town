@@ -11,8 +11,8 @@ Feature: hack a new branch into a worktree while main is active in another workt
 
   Scenario: result
     Then Git Town runs the commands
-      | BRANCH   | COMMAND                                               |
-      | existing | git fetch --prune --tags                              |
+      | BRANCH   | COMMAND                                                |
+      | existing | git fetch --prune --tags                               |
       |          | git worktree add -b new {{ worktree-path "new" }} main |
     And the current branch is still "existing"
     And this lineage exists now

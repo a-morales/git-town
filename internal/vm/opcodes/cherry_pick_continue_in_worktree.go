@@ -12,7 +12,7 @@ type CherryPickContinueInWorktree struct {
 }
 
 func (self *CherryPickContinueInWorktree) Run(args shared.RunArgs) error {
-	return runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, func() error {
+	return runInWorktree(self.Path, args.Config.Value.NormalConfig.DryRun, args.Git.CurrentBranchCache, func() error {
 		return args.Git.CherryPickContinue(args.Frontend)
 	})
 }

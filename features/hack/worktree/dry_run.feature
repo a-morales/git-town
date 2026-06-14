@@ -8,12 +8,12 @@ Feature: dry-run hacking into a new worktree with uncommitted changes
 
   Scenario: result
     Then Git Town runs the commands
-      | BRANCH | COMMAND                                                       |
-      | main   | git add -A                                                    |
-      |        | git stash -m "Git Town WIP"                                   |
+      | BRANCH | COMMAND                                                        |
+      | main   | git add -A                                                     |
+      |        | git stash -m "Git Town WIP"                                    |
       |        | git worktree add -b feature {{ worktree-path "feature" }} main |
-      |        | git stash pop                                                 |
-      |        | git commit -m work                                            |
+      |        | git stash pop                                                  |
+      |        | git commit -m work                                             |
     And the current branch is still "main"
     And an uncommitted file "wip.txt" exists now
     And the initial branches and lineage exist now
