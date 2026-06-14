@@ -406,4 +406,5 @@ To abort and go back to where you started, run "git town undo".`
 	WorktreePathExists       = "cannot create worktree: %q already exists"
 	WorktreePathInUse        = "cannot create worktree at %q: a worktree is already registered there"
 	WorktreeWipConflict      = "moving your uncommitted changes into the new worktree caused conflicts"
+	WorktreeWipRelocated     = "moved uncommitted changes from the removed worktree %q into the current worktree"
 )

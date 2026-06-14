@@ -35,3 +35,7 @@ Feature: hack into a new worktree with uncommitted changes
     And the current branch is still "main"
     And an uncommitted file "wip.txt" exists now
     And the initial branches and lineage exist now
+    And Git Town prints something like:
+      """
+      moved uncommitted changes from the removed worktree
+      """
