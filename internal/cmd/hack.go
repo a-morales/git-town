@@ -335,6 +335,12 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 	createWorktree, _ := args.worktree.Get()
 	worktreePath := ""
 	if createWorktree.ShouldCreateWorktree() {
+		if args.commit.ShouldCommit() && !repoStatus.OpenChanges {
+			// Fail before creating the worktree: there is nothing to commit, so
+			// "git commit" inside the new worktree would fail and leave a stray
+			// worktree and branch behind.
+			return emptyResult, configdomain.ProgramFlowExit, errors.New(messages.WorktreeCommitNoChanges)
+		}
 		parentDir, err := cmdhelpers.WorktreeParentDir(branchesSnapshot, validatedConfig.ValidatedConfigData.MainBranch, repo.RootDir.String())
 		if err != nil {
 			return emptyResult, configdomain.ProgramFlowExit, err
