@@ -402,5 +402,6 @@ To continue with the uncommitted changes on the next branch, run "git town skip"
 To abort and go back to where you started, run "git town undo".`
 	WorktreeAnchorNoWorktree = "cannot determine where to create the worktree: branch %q is not checked out in any worktree"
 	WorktreeCreated          = "created worktree at %s"
-	WorktreePathExists       = "cannot create worktree: directory %q already exists and is not empty"
+	WorktreePathExists       = "cannot create worktree: %q already exists"
+	WorktreePathInUse        = "cannot create worktree at %q: a worktree is already registered there"
 )

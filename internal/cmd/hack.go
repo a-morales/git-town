@@ -340,8 +340,8 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 			return emptyResult, configdomain.ProgramFlowExit, err
 		}
 		worktreePath = cmdhelpers.WorktreePathFor(parentDir, targetBranch)
-		if entries, err := os.ReadDir(worktreePath); err == nil && len(entries) > 0 {
-			return emptyResult, configdomain.ProgramFlowExit, fmt.Errorf(messages.WorktreePathExists, worktreePath)
+		if err := cmdhelpers.CheckWorktreePathAvailable(worktreePath, branchesSnapshot); err != nil {
+			return emptyResult, configdomain.ProgramFlowExit, err
 		}
 	}
 	branchNamesToSync := gitdomain.LocalBranchNames{validatedConfig.ValidatedConfigData.MainBranch}
