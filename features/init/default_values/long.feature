@@ -24,6 +24,7 @@ Feature: Accepting all default values leads to a working setup
       | observed regex                | enter      |
       | branch prefix                 | enter      |
       | new branch type               | enter      |
+      | create worktree              | enter      |
       | unknown branch type           | enter      |
       | sync feature strategy         | enter      |
       | sync perennial strategy       | enter      |

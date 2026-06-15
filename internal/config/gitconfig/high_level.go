@@ -60,6 +60,10 @@ func RemoveContributionRegex(runner subshelldomain.Runner) error {
 	return RemoveConfigValue(runner, configdomain.ConfigScopeLocal, configdomain.KeyContributionRegex)
 }
 
+func RemoveCreateWorktree(runner subshelldomain.Runner) error {
+	return RemoveConfigValue(runner, configdomain.ConfigScopeLocal, configdomain.KeyCreateWorktree)
+}
+
 func RemoveDetached(runner subshelldomain.Runner) error {
 	return RemoveConfigValue(runner, configdomain.ConfigScopeLocal, configdomain.KeyDetached)
 }
@@ -227,6 +231,10 @@ func SetBranchTypeOverride(runner subshelldomain.Runner, branchType configdomain
 
 func SetContributionRegex(runner subshelldomain.Runner, regex configdomain.ContributionRegex, scope configdomain.ConfigScope) error {
 	return SetConfigValue(runner, scope, configdomain.KeyContributionRegex, regex.String())
+}
+
+func SetCreateWorktree(runner subshelldomain.Runner, value configdomain.CreateWorktree, scope configdomain.ConfigScope) error {
+	return SetConfigValue(runner, scope, configdomain.KeyCreateWorktree, value.String())
 }
 
 func SetDetached(runner subshelldomain.Runner, value configdomain.Detached, scope configdomain.ConfigScope) error {

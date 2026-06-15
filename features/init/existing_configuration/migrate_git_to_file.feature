@@ -50,6 +50,7 @@ Feature: migrate existing configuration in Git metadata to a config file
       | observed regex                | enter      |
       | branch prefix                 | enter      |
       | new branch type               | enter      |
+      | create worktree | enter |
       | unknown branch type           | enter      |
       | sync feature strategy         | enter      |
       | sync perennial strategy       | enter      |

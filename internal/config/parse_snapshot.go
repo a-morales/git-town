@@ -90,6 +90,7 @@ func NewPartialConfigFromSnapshot(snapshot configdomain.SingleSnapshot, updateOu
 	branchTypeOverrides, errBranchTypeOverride := NewBranchTypeOverridesInSnapshot(snapshot, ignoreUnknown, runner)
 	browserExecutable, browserEnabled, errBrowser := browserdomain.ParseBrowserOpt(NewOptionIfExists(browserStr, hasBrowser))
 	contributionRegex, errContributionRegex := loadErr(snapshot, configdomain.KeyContributionRegex, configdomain.ParseContributionRegex, ignoreUnknown)
+	createWorktree, errCreateWorktree := loadErr(snapshot, configdomain.KeyCreateWorktree, gohacks.ParseBoolOpt[configdomain.CreateWorktree], ignoreUnknown)
 	detached, errDetached := loadErr(snapshot, configdomain.KeyDetached, gohacks.ParseBoolOpt[configdomain.Detached], ignoreUnknown)
 	displayTypes, errDisplayTypes := loadErr(snapshot, configdomain.KeyDisplayTypes, configdomain.ParseDisplayTypes, ignoreUnknown)
 	featureRegex, errFeatureRegex := loadErr(snapshot, configdomain.KeyFeatureRegex, configdomain.ParseFeatureRegex, ignoreUnknown)
@@ -128,6 +129,7 @@ func NewPartialConfigFromSnapshot(snapshot configdomain.SingleSnapshot, updateOu
 		errBranchTypeOverride,
 		errBrowser,
 		errContributionRegex,
+		errCreateWorktree,
 		errDetached,
 		errDisplayTypes,
 		errFeatureRegex,
@@ -169,6 +171,7 @@ func NewPartialConfigFromSnapshot(snapshot configdomain.SingleSnapshot, updateOu
 		BrowserEnabled:              browserEnabled,
 		ForgejoToken:                load(snapshot, configdomain.KeyForgejoToken, forgedomain.ParseForgejoToken),
 		ContributionRegex:           contributionRegex,
+		CreateWorktree:              createWorktree,
 		Detached:                    detached,
 		DevRemote:                   load(snapshot, configdomain.KeyDevRemote, gitdomain.NewRemote),
 		DisplayTypes:                displayTypes,

@@ -73,6 +73,7 @@ Feature: display invalid Git metadata
 
       Create:
         branch prefix: (not set)
+        create worktree: no
         new branch type: (not set)
         share new branches: no
         stash uncommitted changes: yes

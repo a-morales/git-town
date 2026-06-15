@@ -58,6 +58,7 @@ Feature: show the configuration
 
       Create:
         branch prefix: (not set)
+        create worktree: no
         new branch type: (not set)
         share new branches: no
         stash uncommitted changes: no
@@ -163,6 +164,7 @@ Feature: show the configuration
 
       Create:
         branch prefix: (not set)
+        create worktree: no
         new branch type: (not set)
         share new branches: push
         stash uncommitted changes: no
@@ -293,6 +295,7 @@ Feature: show the configuration
 
       Create:
         branch prefix: (not set)
+        create worktree: no
         new branch type: (not set)
         share new branches: no
         stash uncommitted changes: no
@@ -367,6 +370,7 @@ Feature: show the configuration
 
       Create:
         branch prefix: (not set)
+        create worktree: no
         new branch type: (not set)
         share new branches: no
         stash uncommitted changes: yes
@@ -447,6 +451,7 @@ Feature: show the configuration
 
       Create:
         branch prefix: (not set)
+        create worktree: no
         new branch type: (not set)
         share new branches: no
         stash uncommitted changes: yes

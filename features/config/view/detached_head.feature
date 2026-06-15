@@ -57,6 +57,7 @@ Feature: display configuration from Git metadata in detached head state
 
       Create:
         branch prefix: acme-
+        create worktree: no
         new branch type: (not set)
         share new branches: no
         stash uncommitted changes: no

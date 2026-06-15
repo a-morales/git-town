@@ -108,6 +108,7 @@ Feature: show the configuration
 
       Create:
         branch prefix: git-
+        create worktree: no
         new branch type: (not set)
         share new branches: no
         stash uncommitted changes: no

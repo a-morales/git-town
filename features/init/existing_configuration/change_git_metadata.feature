@@ -37,6 +37,7 @@ Feature: change existing information in Git metadata
       | observed regex                | o b s enter            |
       | branch prefix                 | k g - enter            |
       | new branch type               | down enter             |
+      | create worktree | enter |
       | unknown branch type           | down enter             |
       | sync feature strategy         | down enter             |
       | sync perennial strategy       | down enter             |

@@ -84,6 +84,7 @@ Feature: display information from config file
 
       Create:
         branch prefix: acme-
+        create worktree: no
         new branch type: (not set)
         share new branches: push
         stash uncommitted changes: no

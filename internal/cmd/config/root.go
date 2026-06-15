@@ -103,6 +103,7 @@ func printConfig(config config.UnvalidatedConfig, redact configdomain.Redact) {
 	fmt.Println()
 	print.Header("Create")
 	print.Entry("branch prefix", format.OptionalStringerSetting(config.NormalConfig.BranchPrefix))
+	print.Entry("create worktree", format.Bool(config.NormalConfig.CreateWorktree.ShouldCreateWorktree()))
 	print.Entry("new branch type", format.OptionalStringerSetting(config.NormalConfig.NewBranchType))
 	print.Entry("share new branches", config.NormalConfig.ShareNewBranches.String())
 	print.Entry("stash uncommitted changes", format.Bool(config.NormalConfig.Stash.ShouldStash()))

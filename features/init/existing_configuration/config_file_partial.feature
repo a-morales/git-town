@@ -43,6 +43,7 @@ Feature: ask for information not provided by the config file
       | observed regex                | o b s enter           |
       | branch prefix                 | a c m e - enter       |
       | new branch type               | enter                 |
+      | create worktree | enter |
       | unknown branch type           | enter                 |
       | sync feature strategy         | enter                 |
       | sync perennial strategy       | enter                 |

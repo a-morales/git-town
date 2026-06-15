@@ -27,6 +27,7 @@ type PartialConfig struct {
 	BrowserEnabled              Option[browserdomain.BrowserEnabled]
 	BrowserExecutable           Option[browserdomain.BrowserExecutable]
 	ContributionRegex           Option[ContributionRegex]
+	CreateWorktree              Option[CreateWorktree]
 	Detached                    Option[Detached]
 	DevRemote                   Option[gitdomain.Remote]
 	DisplayTypes                Option[DisplayTypes]
@@ -90,6 +91,7 @@ func (self PartialConfig) Merge(other PartialConfig) PartialConfig {
 		BrowserEnabled:              other.BrowserEnabled.Or(self.BrowserEnabled),
 		BrowserExecutable:           other.BrowserExecutable.Or(self.BrowserExecutable),
 		ContributionRegex:           other.ContributionRegex.Or(self.ContributionRegex),
+		CreateWorktree:              other.CreateWorktree.Or(self.CreateWorktree),
 		Detached:                    other.Detached.Or(self.Detached),
 		DevRemote:                   other.DevRemote.Or(self.DevRemote),
 		DisplayTypes:                other.DisplayTypes.Or(self.DisplayTypes),

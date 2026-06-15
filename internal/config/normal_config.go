@@ -40,6 +40,7 @@ type NormalConfig struct {
 	BrowserEnabled              browserdomain.BrowserEnabled
 	BrowserExecutable           Option[browserdomain.BrowserExecutable]
 	ContributionRegex           Option[configdomain.ContributionRegex]
+	CreateWorktree              configdomain.CreateWorktree
 	Detached                    configdomain.Detached
 	DevRemote                   gitdomain.Remote
 	DisplayTypes                configdomain.DisplayTypes
@@ -112,6 +113,7 @@ func (self *NormalConfig) OverwriteWith(other configdomain.PartialConfig) Normal
 		BrowserEnabled:              other.BrowserEnabled.GetOr(self.BrowserEnabled),
 		BrowserExecutable:           other.BrowserExecutable.Or(self.BrowserExecutable),
 		ContributionRegex:           other.ContributionRegex.Or(self.ContributionRegex),
+		CreateWorktree:              other.CreateWorktree.GetOr(self.CreateWorktree),
 		Detached:                    other.Detached.GetOr(self.Detached),
 		DevRemote:                   other.DevRemote.GetOr(self.DevRemote),
 		DisplayTypes:                other.DisplayTypes.GetOr(self.DisplayTypes),
@@ -267,6 +269,7 @@ func DefaultNormalConfig() NormalConfig {
 		BrowserEnabled:       true,
 		BrowserExecutable:    None[browserdomain.BrowserExecutable](),
 		ContributionRegex:    None[configdomain.ContributionRegex](),
+		CreateWorktree:       false,
 		Detached:             false,
 		DevRemote:            gitdomain.RemoteOrigin,
 		DisplayTypes: configdomain.DisplayTypes{
@@ -326,6 +329,7 @@ func NewNormalConfigFromPartial(partial configdomain.PartialConfig, defaults Nor
 		BrowserEnabled:              partial.BrowserEnabled.GetOr(defaults.BrowserEnabled),
 		BrowserExecutable:           partial.BrowserExecutable.Or(defaults.BrowserExecutable),
 		ContributionRegex:           partial.ContributionRegex,
+		CreateWorktree:              partial.CreateWorktree.GetOr(defaults.CreateWorktree),
 		Detached:                    partial.Detached.GetOr(defaults.Detached),
 		DevRemote:                   partial.DevRemote.GetOr(defaults.DevRemote),
 		DisplayTypes:                partial.DisplayTypes.GetOr(defaults.DisplayTypes),

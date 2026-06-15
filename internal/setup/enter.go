@@ -164,6 +164,7 @@ EnterForgeData:
 	autoSync := None[configdomain.AutoSync]()
 	branchPrefix := None[configdomain.BranchPrefix]()
 	contributionRegex := None[configdomain.ContributionRegex]()
+	createWorktree := None[configdomain.CreateWorktree]()
 	detached := None[configdomain.Detached]()
 	featureRegex := None[configdomain.FeatureRegex]()
 	ignoreUncommitted := None[configdomain.IgnoreUncommitted]()
@@ -209,6 +210,10 @@ EnterForgeData:
 			return emptyResult, exit, false, err
 		}
 		newBranchType, exit, err = enterNewBranchType(data)
+		if err != nil || exit {
+			return emptyResult, exit, false, err
+		}
+		createWorktree, exit, err = enterCreateWorktree(data)
 		if err != nil || exit {
 			return emptyResult, exit, false, err
 		}
@@ -305,6 +310,7 @@ EnterForgeData:
 		BrowserExecutable:           None[browserdomain.BrowserExecutable](),
 		ForgejoToken:                forgejoToken,
 		ContributionRegex:           contributionRegex,
+		CreateWorktree:              createWorktree,
 		Detached:                    detached,
 		DevRemote:                   devRemote,
 		DisplayTypes:                None[configdomain.DisplayTypes](),
@@ -437,6 +443,18 @@ func enterContributionRegex(data Data) (Option[configdomain.ContributionRegex], 
 		Inputs:      data.Inputs,
 		Interactive: data.Config.NormalConfig.Interactive,
 		Local:       data.Config.GitLocal.ContributionRegex,
+	})
+}
+
+func enterCreateWorktree(data Data) (Option[configdomain.CreateWorktree], dialogdomain.Exit, error) {
+	if data.Config.File.CreateWorktree.IsSome() {
+		return None[configdomain.CreateWorktree](), false, nil
+	}
+	return dialog.CreateWorktree(dialog.Args[configdomain.CreateWorktree]{
+		Global:      data.Config.GitGlobal.CreateWorktree,
+		Inputs:      data.Inputs,
+		Interactive: data.Config.NormalConfig.Interactive,
+		Local:       data.Config.GitLocal.CreateWorktree,
 	})
 }
 

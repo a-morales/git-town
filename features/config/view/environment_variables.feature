@@ -77,6 +77,7 @@ Feature: display configuration defined in environment variables
 
       Create:
         branch prefix: acme-
+        create worktree: no
         new branch type: prototype
         share new branches: push
         stash uncommitted changes: no

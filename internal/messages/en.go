@@ -117,6 +117,8 @@ Please upgrade to the new format: create.new-branch-type = "prototype"`
 	CredentialsNoAccess          = "Credentials don't provide access: %s\n"
 	CurrentBranchCannotDetermine = "cannot determine the current branch"
 
+	CreateWorktreeResult = "Create worktree: %s\n"
+
 	DeleteCannotDeleteMainBranch        = "you cannot delete the main branch"
 	DeleteCannotDeletePerennialBranches = "you cannot delete perennial branches"
 	DeleteNoActiveBranch                = "please check out the branch to delete"

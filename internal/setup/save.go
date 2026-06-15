@@ -95,6 +95,9 @@ func saveAllToFile(userInput UserInput, existingConfigFile configdomain.PartialC
 	if gitConfig.ContributionRegex.IsSome() {
 		_ = gitconfig.RemoveContributionRegex(runner)
 	}
+	if gitConfig.CreateWorktree.IsSome() {
+		_ = gitconfig.RemoveCreateWorktree(runner)
+	}
 	if gitConfig.Detached.IsSome() {
 		_ = gitconfig.RemoveDetached(runner)
 	}
@@ -246,6 +249,11 @@ func saveAllToGit(userInput UserInput, existingGitConfig configdomain.PartialCon
 	if configFile.ContributionRegex.IsNone() {
 		fc.Check(
 			saveContributionRegex(userInput.Data.ContributionRegex, existingGitConfig.ContributionRegex, frontend),
+		)
+	}
+	if configFile.CreateWorktree.IsNone() {
+		fc.Check(
+			saveCreateWorktree(userInput.Data.CreateWorktree, existingGitConfig.CreateWorktree, frontend),
 		)
 	}
 	if configFile.Detached.IsNone() {
@@ -413,6 +421,17 @@ func saveContributionRegex(valueToWriteToGit Option[configdomain.ContributionReg
 		return gitconfig.SetContributionRegex(runner, value, configdomain.ConfigScopeLocal)
 	}
 	_ = gitconfig.RemoveContributionRegex(runner)
+	return nil
+}
+
+func saveCreateWorktree(valueToWriteToGit Option[configdomain.CreateWorktree], valueAlreadyInGit Option[configdomain.CreateWorktree], runner subshelldomain.Runner) error {
+	if valueToWriteToGit.Equal(valueAlreadyInGit) {
+		return nil
+	}
+	if value, hasValue := valueToWriteToGit.Get(); hasValue {
+		return gitconfig.SetCreateWorktree(runner, value, configdomain.ConfigScopeLocal)
+	}
+	_ = gitconfig.RemoveCreateWorktree(runner)
 	return nil
 }
 

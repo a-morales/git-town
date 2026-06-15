@@ -62,6 +62,7 @@ const (
 	KeyBranchPrefix                        = Key("git-town.branch-prefix")
 	KeyBrowser                             = Key("git-town.browser")
 	KeyContributionRegex                   = Key("git-town.contribution-regex")
+	KeyCreateWorktree                      = Key("git-town.create-worktree")
 	KeyDeprecatedAliasKill                 = Key("alias.kill")
 	KeyDeprecatedAliasRenameBranch         = Key("alias.rename-branch")
 	KeyDeprecatedCodeHostingDriver         = Key("git-town.code-hosting-driver")
@@ -134,6 +135,7 @@ var keys = []Key{
 	KeyBranchPrefix,
 	KeyBrowser,
 	KeyContributionRegex,
+	KeyCreateWorktree,
 	KeyDeprecatedAliasKill,
 	KeyDeprecatedAliasRenameBranch,
 	KeyDeprecatedCodeHostingDriver,

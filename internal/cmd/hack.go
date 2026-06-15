@@ -223,7 +223,9 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 	}
 	previousBranch := repo.Git.PreviouslyCheckedOutBranch(repo.Backend)
 	targetBranches := gitdomain.NewLocalBranchNames(args.argv...)
-	createWorktree, _ := args.worktree.Get()
+	// Effective worktree mode: the --worktree/--no-worktree flag when set,
+	// otherwise the "create-worktree" config setting.
+	createWorktree := args.worktree.GetOr(repo.UnvalidatedConfig.NormalConfig.CreateWorktree)
 	if repo.IsBare {
 		// A bare repository has no working tree, so worktree mode is mandatory and
 		// the working-tree-dependent flags are rejected. Fail before any fetch.
