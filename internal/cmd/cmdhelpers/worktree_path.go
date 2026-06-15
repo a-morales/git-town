@@ -35,10 +35,7 @@ func CheckWorktreePathAvailable(path string, snapshot gitdomain.BranchesSnapshot
 		return fmt.Errorf(messages.WorktreePathExists, path)
 	}
 	entries, err := os.ReadDir(path)
-	if err != nil {
-		return fmt.Errorf(messages.WorktreePathExists, path)
-	}
-	if len(entries) > 0 {
+	if err != nil || len(entries) > 0 {
 		return fmt.Errorf(messages.WorktreePathExists, path)
 	}
 	return nil
