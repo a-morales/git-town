@@ -1,5 +1,11 @@
 # Git Town Changelog
 
+## Unreleased
+
+#### New Features
+
+- Added `--worktree` and `--no-worktree` CLI flags to [hack](https://www.git-town.com/commands/hack.html) to create the new branch in a new Git worktree instead of the current one.
+
 ## 23.0.2 (2026-06-06)
 
 #### Bug Fixes

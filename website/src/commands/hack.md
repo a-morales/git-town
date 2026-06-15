@@ -3,7 +3,7 @@
 <a type="git-town-command" />
 
 ```command-summary
-git town hack [<branch-name>...] [--(no)-auto-resolve] [-b | --beam] [-c | --commit] [-d | --(no)-detached] [--dry-run] [-h | --help] [--(non)-interactive] [(-m | --message) <message>] [--propose] [-p | --prototype] [--(no)-stash] [--(no)-sync] [-v | --verbose]
+git town hack [<branch-name>...] [--(no)-auto-resolve] [-b | --beam] [-c | --commit] [-d | --(no)-detached] [--dry-run] [-h | --help] [--(non)-interactive] [(-m | --message) <message>] [--propose] [-p | --prototype] [--(no)-stash] [--(no)-sync] [-v | --verbose] [--(no)-worktree]
 ```
 
 The _hack_ command ("let's start hacking") creates a new feature branch with the
@@ -129,6 +129,18 @@ before creating the new branch.
 
 The `--verbose` aka `-v` flag prints all Git commands run under the hood to
 determine the repository state.
+
+#### `--worktree`<br>`--no-worktree`
+
+The `--worktree` flag creates the new branch in a new
+[Git worktree](https://git-scm.com/docs/git-worktree) instead of checking it out
+in your current worktree.
+Your current branch and any uncommitted changes stay where they are.
+Git Town places the new worktree as a sibling of your existing worktrees and
+bases the new branch on the current state of the main branch.
+
+The `--no-worktree` flag creates the new branch in the current worktree,
+overriding configuration that enables worktree creation by default.
 
 ## Configuration
 
