@@ -97,6 +97,50 @@ func (self *Fixture) AddBareRepoLinkedWorktree(branch gitdomain.LocalBranchName)
 	})
 }
 
+// AddBareRepoContainer turns the fixture directory into a bare-repository
+// container: it clones the origin as a bare repo into "<fixture>/.git" (with
+// "main" as HEAD and origin tracking configured) so that running a command from
+// the fixture directory itself operates on a bare repo with no working tree. This
+// models the layout where a developer's project root is a bare repo whose
+// worktrees are siblings inside the container.
+func (self *Fixture) AddBareRepoContainer() {
+	devRepo := self.DevRepo.GetOrPanic()
+	originRepo := self.OriginRepo.GetOrPanic()
+	bareDir := filepath.Join(self.Dir, ".git")
+	devRepo.MustRun("git", "clone", "--bare", originRepo.WorkingDir, bareDir)
+	devRepo.MustRun("git", "-C", bareDir, "symbolic-ref", "HEAD", "refs/heads/main")
+	// git clone --bare does not set up remote-tracking refs or branch tracking;
+	// add them so git-town sees origin/main.
+	devRepo.MustRun("git", "-C", bareDir, "config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*")
+	devRepo.MustRun("git", "-C", bareDir, "fetch", "origin")
+	devRepo.MustRun("git", "-C", bareDir, "config", "branch.main.remote", "origin")
+	devRepo.MustRun("git", "-C", bareDir, "config", "branch.main.merge", "refs/heads/main")
+	devRepo.MustRun("git", "-C", bareDir, "config", "git-town.main-branch", "main")
+}
+
+// BareRepoContainer provides a TestCommands whose working directory is the bare
+// repository container created by AddBareRepoContainer. Commands run from here
+// operate on the bare repo itself, which has no working tree.
+func (self *Fixture) BareRepoContainer() commands.TestCommands {
+	devRepo := self.DevRepo.GetOrPanic()
+	runner := subshell.TestRunner{
+		BinDir:     devRepo.BinDir,
+		HomeDir:    devRepo.HomeDir,
+		Verbose:    devRepo.Verbose,
+		WorkingDir: self.Dir,
+	}
+	gitCommands := git.Commands{
+		CurrentBranchCache: &cache.WithPrevious[gitdomain.LocalBranchName]{},
+		RemotesCache:       &cache.Cache[gitdomain.Remotes]{},
+	}
+	return commands.TestCommands{
+		TestRunner: &runner,
+		Git:        &gitCommands,
+		Config:     devRepo.Config,
+		SnapShots:  devRepo.SnapShots,
+	}
+}
+
 // AddCoworkerRepo adds a coworker repository.
 func (self *Fixture) AddCoworkerRepo() {
 	coworkerRepo := testruntime.Clone(self.OriginRepo.GetOrPanic().TestRunner, self.coworkerRepoPath())

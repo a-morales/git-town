@@ -428,8 +428,15 @@ func (self *Commands) CreateTrackingBranch(runner subshelldomain.Runner, branch 
 
 // CreateWorktree creates a new worktree at the given path containing a new branch
 // based on the given parent, and checks the new branch out in that worktree.
+// When the parent is a remote ref, --no-track is added so the new branch does not
+// track it (mirrors CreateAndCheckoutBranchWithParent).
 func (self *Commands) CreateWorktree(runner subshelldomain.Runner, path string, branch gitdomain.LocalBranchName, parent gitdomain.Location) error {
-	return runner.Run("git", "worktree", "add", "-b", branch.String(), path, parent.String())
+	args := []string{"worktree", "add", "-b", branch.String()}
+	if parent.IsRemoteBranchName() {
+		args = append(args, "--no-track")
+	}
+	args = append(args, path, parent.String())
+	return runner.Run("git", args...)
 }
 
 // CurrentBranch provides the name of the current branch.
@@ -850,6 +857,28 @@ func (self *Commands) RootDirectory(querier subshelldomain.Querier) Option[gitdo
 	return Some(gitdomain.NewRepoRootDir(filepath.FromSlash(output.String())))
 }
 
+// IsBareRepo indicates whether the current repository is bare, i.e. has no working tree.
+func (self *Commands) IsBareRepo(querier subshelldomain.Querier) (bool, error) {
+	output, err := querier.QueryTrim("git", "rev-parse", "--is-bare-repository")
+	if err != nil {
+		return false, err
+	}
+	return output.String() == "true", nil
+}
+
+// WorktreeContainerDir provides the directory that contains a bare repository's
+// worktrees: the parent of the Git directory. New worktrees created from the bare
+// container are placed as children of this directory. This is only meaningful when
+// run from the bare repository itself (not a linked worktree), where the Git dir
+// equals the common dir.
+func (self *Commands) WorktreeContainerDir(querier subshelldomain.Querier) (gitdomain.RepoRootDir, error) {
+	output, err := querier.QueryTrim("git", "rev-parse", "--absolute-git-dir")
+	if err != nil {
+		return gitdomain.RepoRootDir(""), err
+	}
+	return gitdomain.NewRepoRootDir(filepath.Dir(filepath.Clean(output.String()))), nil
+}
+
 func (self *Commands) SHAForBranch(querier subshelldomain.Querier, name gitdomain.BranchName) (gitdomain.SHA, error) {
 	output, err := querier.QueryTrim("git", "rev-parse", name.String())
 	return gitdomain.NewSHAOrPanic(output), gohacks.WrapIfError(err, messages.BranchLocalSHAProblem, name)
@@ -886,7 +915,15 @@ func (self *Commands) Stash(runner subshelldomain.Runner) error {
 
 func (self *Commands) StashSize(querier subshelldomain.Querier) (gitdomain.StashSize, error) {
 	output, err := querier.QueryTrim("git", "stash", "list")
-	return gitdomain.StashSize(len(stringslice.Lines(output.String()))), err
+	if err != nil {
+		// "git stash list" fails in a bare repository (no working tree); such a repo
+		// has no stash, so report size 0 instead of erroring.
+		if bare, bareErr := self.IsBareRepo(querier); bareErr == nil && bare {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return gitdomain.StashSize(len(stringslice.Lines(output.String()))), nil
 }
 
 // UncommittedFiles provides the names of the files not committed into Git.

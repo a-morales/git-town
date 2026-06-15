@@ -401,6 +401,9 @@ To continue after having committed the changes, run "git town continue".
 To continue with the uncommitted changes on the next branch, run "git town skip".
 To abort and go back to where you started, run "git town undo".`
 	WorktreeAnchorNoWorktree = "cannot determine where to create the worktree: branch %q is not checked out in any worktree"
+	WorktreeBareNeedsFlag    = "this is a bare repository with no working tree - run \"git town hack\" with --worktree (or enable the \"create-worktree\" setting) to create the new branch in its own worktree"
+	WorktreeBareNoBeam       = "cannot use --beam from a bare repository: there is no current branch to move commits from"
+	WorktreeBareNoCommit     = "cannot use --commit from a bare repository: there is no working tree with uncommitted changes"
 	WorktreeCommitNoChanges  = "you used \"--commit\" but there are no uncommitted changes to commit"
 	WorktreeCreated          = "created worktree at %s"
 	WorktreePathExists       = "cannot create worktree: %q already exists"

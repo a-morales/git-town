@@ -68,6 +68,7 @@ func undoCmd() *cobra.Command {
 func executeUndo(cliConfig configdomain.PartialConfig) error {
 Start:
 	repo, err := execute.OpenRepo(execute.OpenRepoArgs{
+		AllowBare:        true,
 		CliConfig:        cliConfig,
 		IgnoreUnknown:    false,
 		PrintBranchNames: true,
@@ -129,9 +130,14 @@ type undoData struct {
 func determineUndoData(repo execute.OpenRepoResult) (undoData, configdomain.ProgramFlow, error) {
 	inputs := dialogcomponents.LoadInputs(os.Environ())
 	var emptyResult undoData
-	repoStatus, err := repo.Git.RepoStatus(repo.Backend)
-	if err != nil {
-		return emptyResult, configdomain.ProgramFlowExit, err
+	var repoStatus gitdomain.RepoStatus
+	if !repo.IsBare {
+		// "git status" fails without a working tree; a bare repo has no open changes.
+		var err error
+		repoStatus, err = repo.Git.RepoStatus(repo.Backend)
+		if err != nil {
+			return emptyResult, configdomain.ProgramFlowExit, err
+		}
 	}
 	config := repo.UnvalidatedConfig.NormalConfig
 	connector, detectedForgeType, err := forge.NewConnector(forge.NewConnectorArgs{

@@ -1705,3 +1705,53 @@ func TestWorktreeCommands(t *testing.T) {
 		must.NotEqOp(t, gitdomain.SyncStatusOtherWorktree, branchInfo.SyncStatus)
 	})
 }
+
+func TestBareRepoCommands(t *testing.T) {
+	t.Parallel()
+
+	t.Run("IsBareRepo", func(t *testing.T) {
+		t.Parallel()
+		t.Run("normal repo", func(t *testing.T) {
+			t.Parallel()
+			runtime := testruntime.Create(t)
+			bare, err := runtime.Git.IsBareRepo(runtime)
+			must.NoError(t, err)
+			must.False(t, bare)
+		})
+		t.Run("bare repo", func(t *testing.T) {
+			t.Parallel()
+			runtime := testruntime.Create(t)
+			bareDir := filepath.Join(t.TempDir(), "bare")
+			runtime.MustRun("git", "init", "--bare", bareDir)
+			bareRuntime := testruntime.New(bareDir, runtime.HomeDir, runtime.BinDir)
+			bare, err := bareRuntime.Git.IsBareRepo(bareRuntime)
+			must.NoError(t, err)
+			must.True(t, bare)
+		})
+	})
+
+	t.Run("WorktreeContainerDir provides the parent of the bare Git dir", func(t *testing.T) {
+		t.Parallel()
+		runtime := testruntime.Create(t)
+		container := t.TempDir()
+		bareDir := filepath.Join(container, "repo.git")
+		runtime.MustRun("git", "init", "--bare", bareDir)
+		bareRuntime := testruntime.New(bareDir, runtime.HomeDir, runtime.BinDir)
+		have, err := bareRuntime.Git.WorktreeContainerDir(bareRuntime)
+		must.NoError(t, err)
+		wantDir := asserts.NoError1(filepath.EvalSymlinks(container))
+		haveDir := asserts.NoError1(filepath.EvalSymlinks(have.String()))
+		must.EqOp(t, wantDir, haveDir)
+	})
+
+	t.Run("StashSize reports no stash in a bare repo", func(t *testing.T) {
+		t.Parallel()
+		runtime := testruntime.Create(t)
+		bareDir := filepath.Join(t.TempDir(), "bare")
+		runtime.MustRun("git", "init", "--bare", bareDir)
+		bareRuntime := testruntime.New(bareDir, runtime.HomeDir, runtime.BinDir)
+		size, err := bareRuntime.Git.StashSize(bareRuntime)
+		must.NoError(t, err)
+		must.EqOp(t, gitdomain.StashSize(0), size)
+	})
+}

@@ -50,6 +50,25 @@ func OpenRepo(args OpenRepoArgs) (OpenRepoResult, error) {
 		return emptyOpenRepoResult(), errors.New(messages.GitVersionTooLow)
 	}
 	rootDir, hasRootDir := gitCommands.RootDirectory(backendRunner).Get()
+	isBare := false
+	if !hasRootDir && args.ValidateGitRepo && args.AllowBare {
+		// No working tree was found. When the command allows it, check whether we
+		// are inside a bare repository and, if so, anchor on the container (the
+		// parent of the common Git dir) instead of erroring out.
+		bare, err := gitCommands.IsBareRepo(backendRunner)
+		if err != nil {
+			return emptyOpenRepoResult(), err
+		}
+		if bare {
+			containerDir, err := gitCommands.WorktreeContainerDir(backendRunner)
+			if err != nil {
+				return emptyOpenRepoResult(), err
+			}
+			rootDir = containerDir
+			hasRootDir = true
+			isBare = true
+		}
+	}
 	if args.ValidateGitRepo {
 		if !hasRootDir {
 			return emptyOpenRepoResult(), errors.New(messages.RepoOutside)
@@ -166,6 +185,7 @@ func OpenRepo(args OpenRepoArgs) (OpenRepoResult, error) {
 		FinalMessages:     finalMessages,
 		Frontend:          frontEndRunner,
 		Git:               gitCommands,
+		IsBare:            isBare,
 		IsOffline:         isOffline,
 		RootDir:           rootDir,
 		UnvalidatedConfig: unvalidatedConfig,
@@ -173,6 +193,7 @@ func OpenRepo(args OpenRepoArgs) (OpenRepoResult, error) {
 }
 
 type OpenRepoArgs struct {
+	AllowBare        bool // whether the command may run from a bare repository (no working tree)
 	CliConfig        configdomain.PartialConfig
 	IgnoreUnknown    bool // whether to ignore unknown configuration values
 	PrintBranchNames bool // whether Git Town output should contain branch names
@@ -189,6 +210,7 @@ type OpenRepoResult struct {
 	FinalMessages     stringslice.Collector
 	Frontend          subshelldomain.Runner
 	Git               git.Commands
+	IsBare            bool // whether the repository is bare (no working tree); only set when AllowBare was passed
 	IsOffline         configdomain.Offline
 	RootDir           gitdomain.RepoRootDir
 	UnvalidatedConfig config.UnvalidatedConfig

@@ -155,6 +155,7 @@ type hackArgs struct {
 func executeHack(args hackArgs) error {
 Start:
 	repo, err := execute.OpenRepo(execute.OpenRepoArgs{
+		AllowBare:        true,
 		CliConfig:        args.cliConfig,
 		IgnoreUnknown:    false,
 		PrintBranchNames: true,
@@ -222,10 +223,27 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 	}
 	previousBranch := repo.Git.PreviouslyCheckedOutBranch(repo.Backend)
 	targetBranches := gitdomain.NewLocalBranchNames(args.argv...)
+	createWorktree, _ := args.worktree.Get()
+	if repo.IsBare {
+		// A bare repository has no working tree, so worktree mode is mandatory and
+		// the working-tree-dependent flags are rejected. Fail before any fetch.
+		if !createWorktree.ShouldCreateWorktree() {
+			return emptyResult, configdomain.ProgramFlowExit, errors.New(messages.WorktreeBareNeedsFlag)
+		}
+		if args.commit.ShouldCommit() {
+			return emptyResult, configdomain.ProgramFlowExit, errors.New(messages.WorktreeBareNoCommit)
+		}
+		if args.beam.ShouldBeam() {
+			return emptyResult, configdomain.ProgramFlowExit, errors.New(messages.WorktreeBareNoBeam)
+		}
+	}
 	var repoStatus gitdomain.RepoStatus
-	repoStatus, err = repo.Git.RepoStatus(repo.Backend)
-	if err != nil {
-		return emptyResult, configdomain.ProgramFlowExit, err
+	if !repo.IsBare {
+		// "git status" fails without a working tree; a bare repo has no open changes.
+		repoStatus, err = repo.Git.RepoStatus(repo.Backend)
+		if err != nil {
+			return emptyResult, configdomain.ProgramFlowExit, err
+		}
 	}
 	config := repo.UnvalidatedConfig.NormalConfig
 	connector, detectedForgeType, err := forge.NewConnector(forge.NewConnectorArgs{
@@ -332,7 +350,6 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 	if branchesSnapshot.Branches.HasMatchingTrackingBranchFor(targetBranch) {
 		return emptyResult, configdomain.ProgramFlowExit, fmt.Errorf(messages.BranchAlreadyExistsRemotely, targetBranch, config.DevRemote)
 	}
-	createWorktree, _ := args.worktree.Get()
 	worktreePath := ""
 	if createWorktree.ShouldCreateWorktree() {
 		if args.commit.ShouldCommit() && !repoStatus.OpenChanges {
@@ -341,9 +358,16 @@ func determineHackData(args hackArgs, repo execute.OpenRepoResult) (appendFeatur
 			// worktree and branch behind.
 			return emptyResult, configdomain.ProgramFlowExit, errors.New(messages.WorktreeCommitNoChanges)
 		}
-		parentDir, err := cmdhelpers.WorktreeParentDir(branchesSnapshot, validatedConfig.ValidatedConfigData.MainBranch, repo.RootDir.String())
-		if err != nil {
-			return emptyResult, configdomain.ProgramFlowExit, err
+		var parentDir string
+		if repo.IsBare {
+			// In a bare repository there is no anchoring worktree; new worktrees are
+			// created as children of the container (the repo root).
+			parentDir = repo.RootDir.String()
+		} else {
+			parentDir, err = cmdhelpers.WorktreeParentDir(branchesSnapshot, validatedConfig.ValidatedConfigData.MainBranch, repo.RootDir.String())
+			if err != nil {
+				return emptyResult, configdomain.ProgramFlowExit, err
+			}
 		}
 		worktreePath = cmdhelpers.WorktreePathFor(parentDir, targetBranch)
 		if err := cmdhelpers.CheckWorktreePathAvailable(worktreePath, branchesSnapshot); err != nil {

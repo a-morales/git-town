@@ -297,6 +297,11 @@ echo "new line" >> file
 		state.fixture.AddBareRepoLinkedWorktree(gitdomain.LocalBranchName(branch))
 	})
 
+	sc.Step(`^the repository is a bare repo container$`, func(ctx context.Context) {
+		state := ctx.Value(keyScenarioState).(*ScenarioState)
+		state.fixture.AddBareRepoContainer()
+	})
+
 	sc.Step(`^branch "([^"]+)" (?:now|still) has type "(\w+)"$`, func(ctx context.Context, branchName, branchTypeName string) error {
 		state := ctx.Value(keyScenarioState).(*ScenarioState)
 		devRepo := state.fixture.DevRepo.GetOrPanic()
@@ -903,6 +908,16 @@ echo "new line" >> file
 		runResult := secondWorkTree.MustQueryStringCode(cmd)
 		state.runResult = Some(runResult)
 		secondWorkTree.Reload()
+	})
+
+	sc.Step(`^I run "([^"]+)" in the bare repo container$`, func(ctx context.Context, cmd string) {
+		state := ctx.Value(keyScenarioState).(*ScenarioState)
+		state.CaptureState()
+		updateInitialSHAs(state)
+		container := state.fixture.BareRepoContainer()
+		runResult := container.MustQueryStringCode(cmd)
+		state.runResult = Some(runResult)
+		state.fixture.DevRepo.GetOrPanic().Reload()
 	})
 
 	sc.Step(`^I run "([^"]*)" in the other worktree and enter "([^"]*)" for the commit message$`, func(ctx context.Context, cmd, message string) {
