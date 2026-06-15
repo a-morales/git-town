@@ -172,5 +172,8 @@
     "^the initial tags exist now$",
     "^the initial proposals exist now$",
     "^the proposals are now$"
+  ],
+  "unknown-steps": [
+    "^the repository is a bare repo container$"
   ]
 }

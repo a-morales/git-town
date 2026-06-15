@@ -13,11 +13,13 @@ import (
 
 func TestWorktreePathFor(t *testing.T) {
 	t.Parallel()
+
 	t.Run("branch name with slashes is preserved as nested path", func(t *testing.T) {
 		t.Parallel()
 		have := cmdhelpers.WorktreePathFor("/code/my-project", "feature/foo")
 		must.EqOp(t, "/code/my-project/feature/foo", have)
 	})
+
 	t.Run("simple branch name", func(t *testing.T) {
 		t.Parallel()
 		have := cmdhelpers.WorktreePathFor("/code/my-project", "feature3")

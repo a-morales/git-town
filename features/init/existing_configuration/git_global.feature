@@ -50,7 +50,7 @@ Feature: setup a new repo when I have configured some things in global Git metad
       | observed regex                | enter       |
       | branch prefix                 | enter       |
       | new branch type               | enter       |
-      | create worktree | enter |
+      | create worktree               | enter       |
       | unknown branch type           | enter       |
       | sync feature strategy         | enter       |
       | sync perennial strategy       | enter       |

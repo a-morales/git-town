@@ -11,6 +11,7 @@ import (
 
 func TestNewPartialConfigFromSnapshotCreateWorktree(t *testing.T) {
 	t.Parallel()
+
 	t.Run("set to true", func(t *testing.T) {
 		t.Parallel()
 		snapshot := configdomain.SingleSnapshot{
@@ -18,8 +19,9 @@ func TestNewPartialConfigFromSnapshotCreateWorktree(t *testing.T) {
 		}
 		have, err := config.NewPartialConfigFromSnapshot(snapshot, false, false, nil)
 		must.NoError(t, err)
-		must.Eq(t, Some(configdomain.CreateWorktree(true)), have.CreateWorktree)
+		must.True(t, have.CreateWorktree.EqualSome(configdomain.CreateWorktree(true)))
 	})
+
 	t.Run("set to false", func(t *testing.T) {
 		t.Parallel()
 		snapshot := configdomain.SingleSnapshot{
@@ -27,8 +29,9 @@ func TestNewPartialConfigFromSnapshotCreateWorktree(t *testing.T) {
 		}
 		have, err := config.NewPartialConfigFromSnapshot(snapshot, false, false, nil)
 		must.NoError(t, err)
-		must.Eq(t, Some(configdomain.CreateWorktree(false)), have.CreateWorktree)
+		must.True(t, have.CreateWorktree.EqualSome(configdomain.CreateWorktree(false)))
 	})
+
 	t.Run("not set", func(t *testing.T) {
 		t.Parallel()
 		snapshot := configdomain.SingleSnapshot{}

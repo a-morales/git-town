@@ -44,7 +44,7 @@ Feature: Fix invalid configuration data
       | observed regex                | o b s enter                   |
       | branch prefix                 | backspace backspace a b enter |
       | new branch type               | down enter                    |
-      | create worktree | enter |
+      | create worktree               | enter                         |
       | unknown branch type           | down enter                    |
       | sync feature strategy         | down enter                    |
       | sync perennial strategy       | down enter                    |

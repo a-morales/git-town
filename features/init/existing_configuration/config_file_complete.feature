@@ -64,5 +64,4 @@ Feature: don't ask for information already provided by the config file
       | enter all          | down enter        |
       | config storage     | enter             |
     Then Git Town runs the commands
-      | COMMAND                                 |
-      | git config git-town.github-token gh-tok |
+      | COMMAND |

@@ -1685,7 +1685,7 @@ func TestWorktreeCommands(t *testing.T) {
 		must.EqOp(t, gitdomain.SyncStatusOtherWorktree, branchInfo.SyncStatus)
 		// the worktree path points at the created directory (symlink-resolved)
 		resolvedWorktreeDir := asserts.NoError1(filepath.EvalSymlinks(worktreeDir))
-		must.Eq(t, Some(resolvedWorktreeDir), branchInfo.WorktreePath)
+		must.True(t, branchInfo.WorktreePath.EqualSome(resolvedWorktreeDir))
 	})
 
 	t.Run("RemoveWorktree", func(t *testing.T) {

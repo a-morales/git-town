@@ -19,9 +19,9 @@ Feature: hack into a new worktree with uncommitted changes and --no-stash
       | feature | git stash pop                                                  |
       |         | git restore --staged .                                         |
     And the current branch is still "main"
-    And no uncommitted files exist now
     And this lineage exists now
       """
       main
         feature
       """
+    And no uncommitted files exist now

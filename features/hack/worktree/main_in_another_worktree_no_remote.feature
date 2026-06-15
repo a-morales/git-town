@@ -1,7 +1,7 @@
 Feature: hack a new branch into a worktree while main is active in another worktree without a remote
 
-  # Without a remote tracking branch for "main" there is nothing more current to
-  # base off, so the new worktree falls back to the local "main" ref.
+# Without a remote tracking branch for "main" there is nothing more current to
+# base off, so the new worktree falls back to the local "main" ref.
 
   Background:
     Given a local Git repo

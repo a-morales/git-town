@@ -71,7 +71,7 @@ Feature: remove existing configuration in Git metadata
       | observed regex                | backspace backspace backspace backspace backspace enter                     |                     |
       | branch prefix                 | backspace backspace backspace enter                                         |                     |
       | new branch type               | up enter                                                                    |                     |
-      | create worktree | enter | |
+      | create worktree               | enter                                                                       |                     |
       | unknown branch type           | up enter                                                                    |                     |
       | sync feature strategy         | up enter                                                                    |                     |
       | sync perennial strategy       | down enter                                                                  |                     |

@@ -2,8 +2,8 @@ Feature: the "create-worktree" config setting makes hack create worktrees by def
 
   Background:
     Given a Git repo with origin
-    And the current branch is "main"
     And local Git setting "git-town.create-worktree" is "true"
+    And the current branch is "main"
 
   Scenario: enabled via config without a flag
     When I run "git-town hack feature"
@@ -24,4 +24,4 @@ Feature: the "create-worktree" config setting makes hack create worktrees by def
       | BRANCH | COMMAND                  |
       | main   | git fetch --prune --tags |
       |        | git checkout -b feature  |
-    And the current branch is "feature"
+    And the current branch is now "feature"
