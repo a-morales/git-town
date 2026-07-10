@@ -6,6 +6,17 @@
 
 - Added `--worktree` and `--no-worktree` CLI flags to [hack](https://www.git-town.com/commands/hack.html) to create the new branch in a new Git worktree instead of the current one.
 
+## 23.0.3 (2026-06-21)
+
+#### Bug Fixes
+
+- `git town continue` now works with faulty Git pre-commit hooks ([#6242](https://github.com/git-town/git-town/issues/6242)).
+- `git town ship` now works from a Git worktree ([#6237](https://github.com/git-town/git-town/issues/6237)).
+
+#### Contributors
+
+Big thanks to @Indemnity83, @OrHayat, @kevgo, @yaadata for contributing code, bug fixes, and ideas to 15 shipped pull requests 3 resolved issues!
+
 ## 23.0.2 (2026-06-06)
 
 #### Bug Fixes
@@ -249,6 +260,7 @@ Shoutout to @Phunky, @alexus37, @aximut, @bb010g, @benmosher, @blaggacao, @charl
   ```
 
   ([#5446](https://github.com/git-town/git-town/issues/5446))
+
 - The `hack`, `append`, and `prepend` commands now support a [stash](https://www.git-town.com/commands/hack.html#--stash--no-stash) flag and config option to leave staged changes as-is. Handy if you've carefully prepared an index you want to commit to a new branch ([#5429](https://github.com/git-town/git-town/issues/5429)).
 - The setup assistant can now do a quick setup with only the essential settings ([#5484](https://github.com/git-town/git-town/issues/5484)).
 - Added a new `feature` command to convert the given or current branch into a feature branch ([#5376](https://github.com/git-town/git-town/issues/5376)).
@@ -552,7 +564,7 @@ Shoutout to @WhosNickDoglio, @andrew-rosca, @avaz, @caccavale, @charlierudolph, 
 
 #### New Features
 
-- This release replaces the term "hosting platform" with [forge](https://en.wikipedia.org/wiki/Forge_(software)) because the latter is more correct and only one word. The configuration setting `hosting.platform` is now `hosting.forge-type`. This isn't a breaking change since the old settings still work. ([#4565](https://github.com/git-town/git-town/pull/4565), [#4568](https://github.com/git-town/git-town/pull/4568), [#4570](https://github.com/git-town/git-town/pull/4570))
+- This release replaces the term "hosting platform" with [forge](<https://en.wikipedia.org/wiki/Forge_(software)>) because the latter is more correct and only one word. The configuration setting `hosting.platform` is now `hosting.forge-type`. This isn't a breaking change since the old settings still work. ([#4565](https://github.com/git-town/git-town/pull/4565), [#4568](https://github.com/git-town/git-town/pull/4568), [#4570](https://github.com/git-town/git-town/pull/4570))
 
 #### Bug Fixes
 
@@ -1340,7 +1352,7 @@ Some ergonomics improvements that change existing command names, hence the major
 - support for Apple Silicon ([#1735](https://github.com/git-town/git-town/pull/1735), [#1736](https://github.com/git-town/git-town/pull/1736))
 - ignore changes in submodules during sync ([#1744](https://github.com/git-town/git-town/pull/1744))
 - improved CLI interface including better shell autocompletions ([#1722](https://github.com/git-town/git-town/pull/1722))
-- shell-based installer for *nix systems ([#1707](https://github.com/git-town/git-town/pull/1707))
+- shell-based installer for \*nix systems ([#1707](https://github.com/git-town/git-town/pull/1707))
 - new website ([#1684](https://github.com/git-town/git-town/pull/1684))
 - Make command shows dependency tree within the codebase ([#1725](https://github.com/git-town/git-town/pull/1725))
 - Go API now has the same major version number as the binary ([#1677](https://github.com/git-town/git-town/pull/1677))
