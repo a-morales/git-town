@@ -2,7 +2,7 @@ package configdomain
 
 import "strconv"
 
-// CreateWorktree indicates whether the "hack" and "append" commands should
+// CreateWorktree indicates whether the "hack" command should
 // create the new branch in a new Git worktree instead of the current one.
 type CreateWorktree bool
 

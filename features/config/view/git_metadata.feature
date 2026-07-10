@@ -53,7 +53,7 @@ Feature: display configuration from Git metadata
       Configuration:
         offline: no
         git user name: user
-        git user email: email@example.com
+        git user email: (configured)
 
       Create:
         branch prefix: acme-
@@ -82,6 +82,7 @@ Feature: display configuration from Git metadata
 
       Ship:
         delete tracking branch: yes
+        enter message: no
         ignore uncommitted changes: yes
         ship strategy: squash-merge
 
@@ -128,7 +129,7 @@ Feature: display configuration from Git metadata
       Configuration:
         offline: no
         git user name: user
-        git user email: email@example.com
+        git user email: (configured)
 
       Create:
         branch prefix: (not set)
@@ -157,6 +158,7 @@ Feature: display configuration from Git metadata
 
       Ship:
         delete tracking branch: yes
+        enter message: no
         ignore uncommitted changes: no
         ship strategy: api
 
