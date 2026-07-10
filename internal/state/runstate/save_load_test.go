@@ -70,6 +70,7 @@ func TestLoadSave(t *testing.T) {
 				&opcodes.CherryPickContinue{},
 				&opcodes.Commit{AuthorOverride: Some(gitdomain.Author("user@acme.com")), FallbackToDefaultCommitMessage: true, Message: Some(gitdomain.CommitMessage("my message"))},
 				&opcodes.CommitAutoUndo{AuthorOverride: Some(gitdomain.Author("user@acme.com")), FallbackToDefaultCommitMessage: true, Message: Some(gitdomain.CommitMessage("my message"))},
+				&opcodes.CommitIfNeeded{AuthorOverride: Some(gitdomain.Author("user@acme.com")), FallbackToDefaultCommitMessage: true, Message: Some(gitdomain.CommitMessage("my message"))},
 				&opcodes.CommitMessageCommentOut{},
 				&opcodes.CommitRemove{SHA: "123456"},
 				&opcodes.CommitRevert{SHA: "123456"},
@@ -369,6 +370,14 @@ func TestLoadSave(t *testing.T) {
       "type": "CommitAutoUndo"
     },
     {
+      "data": {
+        "AuthorOverride": "user@acme.com",
+        "FallbackToDefaultCommitMessage": true,
+        "Message": "my message"
+      },
+      "type": "CommitIfNeeded"
+    },
+    {
       "data": {},
       "type": "CommitMessageCommentOut"
     },
@@ -436,6 +445,7 @@ func TestLoadSave(t *testing.T) {
       "data": {
         "Branch": "branch",
         "CommitMessage": "commit message",
+        "EnterMessage": false,
         "Proposal": {
           "data": {
             "Active": true,
